@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,6 +13,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool cycleReminders = true;
   bool periodAlerts = true;
   bool cartUpdates = false;
+  String userName = 'User';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserName();
+  }
+
+  Future<void> _fetchUserName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final docSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (docSnapshot.exists && mounted) {
+          setState(() {
+            userName = docSnapshot['name'] ?? 'User';
+            isLoading = false;
+          });
+        } else if (mounted) {
+          setState(() {
+            userName = 'User';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          userName = 'User';
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   void _openSettingsPopup() {
     showModalBottomSheet(
@@ -110,17 +151,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'Welcome, User!',
-                        style: TextStyle(
+                        'Welcome, $userName!',
+                        style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w500,
                           letterSpacing: -0.4,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         "Here’s your gentle overview today",
                         style: TextStyle(
                           fontSize: 14,

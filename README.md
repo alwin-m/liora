@@ -51,6 +51,7 @@ The app is designed with a **soft pastel aesthetic**, emotionally neutral langua
 
 ---
 
+
 ## 🗂️ Project Structure
 
 ```

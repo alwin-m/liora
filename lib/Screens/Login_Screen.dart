@@ -14,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool _obscurePassword = true; // 👁️ Password visibility state
   String? errorMessage;
 
   Future<void> login() async {
@@ -135,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: emailController,
                       enabled: !isLoading,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         labelText: 'Email',
                         prefixIcon: const Icon(Icons.email_outlined),
@@ -146,18 +148,30 @@ class _LoginScreenState extends State<LoginScreen> {
                           vertical: 14,
                         ),
                       ),
-                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
 
-                    // Password
+                    // Password with Eye Toggle
                     TextField(
                       controller: passwordController,
                       enabled: !isLoading,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: Colors.grey.shade600,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -238,24 +252,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Forgot Password (optional)
+                    // Forgot Password
                     TextButton(
-                      onPressed: isLoading ? null : () {
-                        // TODO: Implement forgot password flow
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password reset coming soon'),
-                            duration: Duration(seconds: 2),
-                            backgroundColor: Colors.black87,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password reset coming soon'),
+                                  duration: Duration(seconds: 2),
+                                  backgroundColor: Colors.black87,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
                       child: Text(
                         'Forgot your password?',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Colors.grey,
                         ),
                       ),
                     ),
@@ -280,15 +295,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: isLoading
                         ? null
                         : () {
-                            Navigator.pushReplacementNamed(
-                              context,
-                              '/signup',
-                            );
+                            Navigator.pushReplacementNamed(context, '/signup');
                           },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
                     child: Text(
                       'Create an account',
                       style: GoogleFonts.poppins(

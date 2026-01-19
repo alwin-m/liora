@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'An unexpected error occurred.';
+        errorMessage = 'An unexpected 404 error occurred.';
       });
     } finally {
       if (mounted) {

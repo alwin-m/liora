@@ -21,7 +21,7 @@ class _FirstTimeSetupState extends State<FirstTimeSetup> with SingleTickerProvid
   int periodDuration = 5;
   bool isLoading = false;
 
-  final List<String> quickCycleLengths = ['21', '24', '27', '28', '30', '32'];
+  final List<String> quickCycleLengths = ['22', '23', '24', '25', '26', '27', '28', '29', '30', '31'];
 
   @override
   void initState() {

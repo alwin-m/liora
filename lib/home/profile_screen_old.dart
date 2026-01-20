@@ -18,23 +18,214 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  // Real user data
+  String userName = 'Loading...';
+  String? profilePhotoUrl;
+  bool isLoadingPhoto = false;
+
+  // Real notification settings
+  bool cycleReminders = false;
+  bool periodAlerts = false;
+  bool cartUpdates = false;
+
+  // Real cart data
+  List<CartItem> cartItems = [];
+
+  // Real cycle data
+  String nextPeriodText = 'Loading...';
+  String? nextPeriodSubtext;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _imagePicker = ImagePicker();
-  
-  bool isLoadingPhoto = false;
-  final CycleDataService _cycleService = CycleDataService();
 
   @override
   void initState() {
     super.initState();
-    // Start listening to cycle data changes in real-time
-    _cycleService.getUserCycleDataStream().listen((_) {
-      if (mounted) {
-        setState(() {}); // Rebuild when cycle data changes
+    _loadAllData();
+  }
+
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadUserProfile(),
+      _loadNotificationSettings(),
+      _loadCartData(),
+      _loadCycleData(),
+    ]);
+  }
+
+  /// Load real user data from Firestore and Firebase Auth
+  Future<void> _loadUserProfile() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final docSnapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data() ?? {};
+        setState(() {
+          userName = data['name'] ?? 'User';
+          profilePhotoUrl = data['profilePhotoUrl'];
+        });
+      } else {
+        setState(() {
+          userName = user.displayName ?? 'User';
+          profilePhotoUrl = user.photoURL;
+        });
       }
-    });
+    } catch (e) {
+      print('Error loading user profile: $e');
+      if (mounted) {
+        setState(() => userName = 'User');
+      }
+    }
+  }
+
+  /// Load real notification preferences from Firestore
+  Future<void> _loadNotificationSettings() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final docSnapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('settings')
+          .doc('notifications')
+          .get();
+
+      if (!mounted) return;
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data() ?? {};
+        setState(() {
+          cycleReminders = data['cycleReminders'] ?? false;
+          periodAlerts = data['periodAlerts'] ?? false;
+          cartUpdates = data['cartUpdates'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error loading notification settings: $e');
+    }
+  }
+
+  /// Load real cart data from Firestore
+  Future<void> _loadCartData() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final cartSnapshot = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .get();
+
+      if (!mounted) return;
+
+      final items = <CartItem>[];
+      for (var doc in cartSnapshot.docs) {
+        final data = doc.data();
+        items.add(CartItem(
+          id: doc.id,
+          name: data['name'] ?? 'Unknown',
+          price: data['price'] ?? 0,
+          image: data['image'] ?? '',
+          quantity: data['quantity'] ?? 1,
+        ));
+      }
+
+      setState(() => cartItems = items);
+    } catch (e) {
+      print('Error loading cart data: $e');
+    }
+  }
+
+  /// Load real cycle data and calculate next period
+  Future<void> _loadCycleData() async {
+    try {
+      final service = CycleDataService();
+      await service.loadUserCycleData();
+
+      if (!mounted) return;
+
+      if (service.isDataLoaded) {
+        final nextPeriodRange = service.getNextPeriodDateRange();
+        if (nextPeriodRange != null) {
+          final daysUntil =
+              nextPeriodRange.start.difference(DateTime.now()).inDays;
+
+          setState(() {
+            if (daysUntil < 0) {
+              nextPeriodText = 'Your period is now';
+              nextPeriodSubtext = 'Day ${service.getCurrentCycleDay()}';
+            } else if (daysUntil == 0) {
+              nextPeriodText = 'Your period starts today';
+              nextPeriodSubtext = nextPeriodRange.formattedString;
+            } else if (daysUntil == 1) {
+              nextPeriodText = 'In 1 day';
+              nextPeriodSubtext = 'Expected ${nextPeriodRange.formattedString}';
+            } else {
+              nextPeriodText = 'In $daysUntil days';
+              nextPeriodSubtext = 'Expected ${nextPeriodRange.formattedString}';
+            }
+          });
+        } else {
+          setState(() {
+            nextPeriodText = 'No data';
+            nextPeriodSubtext = 'Complete setup to see predictions';
+          });
+        }
+      } else {
+        setState(() {
+          nextPeriodText = 'Setup needed';
+          nextPeriodSubtext = 'Go to calendar to add cycle data';
+        });
+      }
+    } catch (e) {
+      print('Error loading cycle data: $e');
+      if (mounted) {
+        setState(() {
+          nextPeriodText = 'Unable to load';
+          nextPeriodSubtext = 'Check your connection';
+        });
+      }
+    }
+  }
+
+  /// Update notification setting in Firestore
+  Future<void> _updateNotificationSetting(
+    String setting,
+    bool value,
+  ) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('settings')
+          .doc('notifications')
+          .set({
+        setting: value,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print('Error updating notification setting: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save setting: $e'),
+          backgroundColor: const Color(0xFFE74C3C),
+        ),
+      );
+    }
   }
 
   /// Handle profile photo selection and upload
@@ -69,7 +260,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
 
-      setState(() => isLoadingPhoto = false);
+      setState(() {
+        profilePhotoUrl = downloadUrl;
+        isLoadingPhoto = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -112,7 +306,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
 
-      setState(() => isLoadingPhoto = false);
+      setState(() {
+        profilePhotoUrl = null;
+        isLoadingPhoto = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -159,28 +356,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _pickAndUploadProfilePhoto();
               },
             ),
-            StreamBuilder<DocumentSnapshot>(
-              stream: _firestore
-                  .collection('users')
-                  .doc(_auth.currentUser?.uid)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                final hasPhoto = snapshot.hasData &&
-                    (snapshot.data?.data() as Map?)?.containsKey('profilePhotoUrl') == true;
-                
-                if (!hasPhoto) return const SizedBox.shrink();
-                
-                return _PhotoOption(
-                  icon: Icons.delete_outline,
-                  title: 'Remove photo',
-                  isDestructive: true,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _removeProfilePhoto();
-                  },
-                );
-              },
-            ),
+            if (profilePhotoUrl != null)
+              _PhotoOption(
+                icon: Icons.delete_outline,
+                title: 'Remove photo',
+                isDestructive: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _removeProfilePhoto();
+                },
+              ),
           ],
         ),
       ),
@@ -287,428 +472,250 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Not logged in')),
-      );
-    }
+    final now = DateTime.now();
+    final dateFormatter = DateFormat('d MMMM yyyy');
+    final todayText = dateFormatter.format(now);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDFCF8),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: _firestore
-                .collection('users')
-                .doc(user.uid)
-                .snapshots(),
-            builder: (context, userSnapshot) {
-              // Load user data
-              String userName = 'User';
-              String? profilePhotoUrl;
-              
-              if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-                userName = userData['name'] ?? user.displayName ?? 'User';
-                profilePhotoUrl = userData['profilePhotoUrl'];
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Brand + Settings button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Brand + Settings button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'LIORA',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined),
-                        onPressed: _openSettingsPopup,
-                      ),
-                    ],
+                  const Text(
+                    'LIORA',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.4,
+                    ),
                   ),
-
-                  const SizedBox(height: 36),
-
-                  // User profile section
-                  Row(
-                    children: [
-                      // Profile photo - TAPPABLE
-                      GestureDetector(
-                        onTap: _showPhotoOptions,
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFF4C7D8),
-                                  width: 2,
-                                ),
-                                color: Colors.white,
-                              ),
-                              child: ClipOval(
-                                child: profilePhotoUrl != null && !isLoadingPhoto
-                                    ? Image.network(
-                                        profilePhotoUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Center(
-                                            child: Icon(
-                                              Icons.person_outline,
-                                              size: 48,
-                                              color: Color(0xFFE67598),
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    : Center(
-                                        child: isLoadingPhoto
-                                            ? const SizedBox(
-                                                width: 32,
-                                                height: 32,
-                                                child: CircularProgressIndicator(
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation(
-                                                    Color(0xFFE67598),
-                                                  ),
-                                                  strokeWidth: 2,
-                                                ),
-                                              )
-                                            : const Icon(
-                                                Icons.person_outline,
-                                                size: 48,
-                                                color: Color(0xFFE67598),
-                                              ),
-                                      ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFE67598),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt_outlined,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome, $userName!',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: -0.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              "Here's your gentle overview today",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF6F6152),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    onPressed: _openSettingsPopup,
                   ),
-
-                  const SizedBox(height: 20),
-                  
-                  // Today's date - REAL-TIME
-                  Builder(
-                    builder: (context) {
-                      final now = DateTime.now();
-                      final dateFormatter = DateFormat('d MMMM yyyy');
-                      final todayText = dateFormatter.format(now);
-                      return Text(
-                        'Today · $todayText',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF6F6152),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Next cycle card - REAL-TIME
-                  _CycleCardStream(cycleService: _cycleService),
-
-                  const SizedBox(height: 16),
-
-                  // Cart section - REAL-TIME
-                  _CartCardStream(user: user),
-
-                  const SizedBox(height: 16),
-
-                  // Notifications section - REAL-TIME
-                  _NotificationsCardStream(user: user),
                 ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Real-time cycle card with StreamBuilder
-class _CycleCardStream extends StatelessWidget {
-  final CycleDataService cycleService;
-
-  const _CycleCardStream({required this.cycleService});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        String mainText = 'Loading...';
-        String? subText;
-
-        if (snapshot.hasData && snapshot.data!.exists) {
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final lastPeriodDate = (data['lastPeriodDate'] as Timestamp?)?.toDate();
-          final cycleLength = data['cycleLength'] as int? ?? 28;
-
-          if (lastPeriodDate != null) {
-            // Calculate next period
-            final nextPeriodStart = lastPeriodDate.add(Duration(days: cycleLength));
-            final daysUntil = nextPeriodStart.difference(DateTime.now()).inDays;
-
-            if (daysUntil < 0) {
-              final cycleDay =
-                  DateTime.now().difference(lastPeriodDate).inDays % cycleLength + 1;
-              mainText = 'Your period is now';
-              subText = 'Day $cycleDay';
-            } else if (daysUntil == 0) {
-              mainText = 'Your period starts today';
-              final dateFormat = DateFormat('MMM d – MMM d');
-              subText = dateFormat.format(nextPeriodStart);
-            } else if (daysUntil == 1) {
-              mainText = 'In 1 day';
-              final dateFormat = DateFormat('MMM d – MMM d');
-              subText = 'Expected ${dateFormat.format(nextPeriodStart)}';
-            } else {
-              mainText = 'In $daysUntil days';
-              final dateFormat = DateFormat('MMM d – MMM d');
-              subText = 'Expected ${dateFormat.format(nextPeriodStart)}';
-            }
-          } else {
-            mainText = 'Setup needed';
-            subText = 'Go to calendar to add cycle data';
-          }
-        }
-
-        return _InfoCard(
-          title: 'Next cycle',
-          mainText: mainText,
-          subText: subText ?? '',
-          highlight: true,
-        );
-      },
-    );
-  }
-}
-
-/// Real-time cart card with StreamBuilder
-class _CartCardStream extends StatelessWidget {
-  final User user;
-
-  const _CartCardStream({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('cart')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _CardContainer(
-            title: 'Your Cart',
-            child: Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation(Color(0xFFE67598)),
-                  strokeWidth: 2,
-                ),
               ),
-            ),
-          );
-        }
 
-        final cartItems = snapshot.data?.docs ?? [];
+              const SizedBox(height: 36),
 
-        return _CardContainer(
-          title: 'Your Cart',
-          child: cartItems.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
+              // User profile section
+              Row(
+                children: [
+                  // Profile photo
+                  GestureDetector(
+                    onTap: _showPhotoOptions,
+                    child: Stack(
                       children: [
-                        const Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 32,
-                          color: Color(0xFFE8E0D5),
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFF4C7D8),
+                              width: 2,
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: ClipOval(
+                            child: profilePhotoUrl != null && !isLoadingPhoto
+                                ? Image.network(
+                                    profilePhotoUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(
+                                          Icons.person_outline,
+                                          size: 48,
+                                          color: Color(0xFFE67598),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Center(
+                                    child: isLoadingPhoto
+                                        ? const SizedBox(
+                                            width: 32,
+                                            height: 32,
+                                            child: CircularProgressIndicator(
+                                              valueColor:
+                                                  AlwaysStoppedAnimation(
+                                                Color(0xFFE67598),
+                                              ),
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.person_outline,
+                                            size: 48,
+                                            color: Color(0xFFE67598),
+                                          ),
+                                  ),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Your cart is empty',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6F6152),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFFE67598),
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_outlined,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: cartItems.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = cartItems[index];
-                    final data = item.data() as Map<String, dynamic>;
-                    return _CartItemWidget(
-                      image: data['image'] ?? '',
-                      name: data['name'] ?? 'Unknown',
-                      quantity: data['quantity'] ?? 1,
-                      price: data['price'] ?? 0,
-                    );
-                  },
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome, $userName!',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Here's your gentle overview today",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6F6152),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+              Text(
+                'Today · $todayText',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6F6152),
                 ),
-        );
-      },
-    );
-  }
-}
-
-/// Real-time notifications card with StreamBuilder
-class _NotificationsCardStream extends StatelessWidget {
-  final User user;
-
-  const _NotificationsCardStream({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('settings')
-          .doc('notifications')
-          .snapshots(),
-      builder: (context, snapshot) {
-        final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
-        final cycleReminders = data['cycleReminders'] ?? false;
-        final periodAlerts = data['periodAlerts'] ?? false;
-        final cartUpdates = data['cartUpdates'] ?? false;
-
-        return _CardContainer(
-          title: 'Notifications',
-          child: Column(
-            children: [
-              _ToggleRow(
-                title: 'Cycle reminders',
-                subtitle: 'Gentle nudges about your cycle phases',
-                value: cycleReminders,
-                onChanged: (v) {
-                  _updateNotificationSetting(context, user.uid, 'cycleReminders', v);
-                },
               ),
-              _ToggleRow(
-                title: 'Upcoming period alerts',
-                subtitle: '2–3 days before your expected period',
-                value: periodAlerts,
-                onChanged: (v) {
-                  _updateNotificationSetting(context, user.uid, 'periodAlerts', v);
-                },
+
+              const SizedBox(height: 32),
+
+              // Next cycle card
+              _InfoCard(
+                title: 'Next cycle',
+                mainText: nextPeriodText,
+                subText: nextPeriodSubtext ?? '',
+                highlight: true,
               ),
-              _ToggleRow(
-                title: 'Cart & order updates',
-                subtitle: 'When items ship or arrive',
-                value: cartUpdates,
-                onChanged: (v) {
-                  _updateNotificationSetting(context, user.uid, 'cartUpdates', v);
-                },
+
+              const SizedBox(height: 16),
+
+              // Cart section
+              _CardContainer(
+                title: 'Your Cart',
+                child: cartItems.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.shopping_bag_outlined,
+                                size: 32,
+                                color: Color(0xFFE8E0D5),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Your cart is empty',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF6F6152),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: cartItems.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = cartItems[index];
+                          return _CartItemWidget(
+                            image: item.image,
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price,
+                          );
+                        },
+                      ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Notifications section
+              _CardContainer(
+                title: 'Notifications',
+                child: Column(
+                  children: [
+                    _ToggleRow(
+                      title: 'Cycle reminders',
+                      subtitle: 'Gentle nudges about your cycle phases',
+                      value: cycleReminders,
+                      onChanged: (v) {
+                        setState(() => cycleReminders = v);
+                        _updateNotificationSetting('cycleReminders', v);
+                      },
+                    ),
+                    _ToggleRow(
+                      title: 'Upcoming period alerts',
+                      subtitle: '2–3 days before your expected period',
+                      value: periodAlerts,
+                      onChanged: (v) {
+                        setState(() => periodAlerts = v);
+                        _updateNotificationSetting('periodAlerts', v);
+                      },
+                    ),
+                    _ToggleRow(
+                      title: 'Cart & order updates',
+                      subtitle: 'When items ship or arrive',
+                      value: cartUpdates,
+                      onChanged: (v) {
+                        setState(() => cartUpdates = v);
+                        _updateNotificationSetting('cartUpdates', v);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _updateNotificationSetting(
-    BuildContext context,
-    String uid,
-    String setting,
-    bool value,
-  ) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('settings')
-        .doc('notifications')
-        .set({
-      setting: value,
-    }, SetOptions(merge: true)).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving setting: $e'),
-          backgroundColor: const Color(0xFFE74C3C),
         ),
-      );
-    });
+      ),
+    );
   }
 }
 
@@ -1033,4 +1040,21 @@ class _PhotoOption extends StatelessWidget {
       ),
     );
   }
+}
+
+// Updated CartItem with quantity
+class CartItem {
+  final String id;
+  final String name;
+  final int price;
+  final String image;
+  final int quantity;
+
+  CartItem({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.image,
+    required this.quantity,
+  });
 }

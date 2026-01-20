@@ -23,7 +23,41 @@ class CycleDataService {
 
   late CycleAlgorithm _algorithm;
 
-  /// Fetch user's cycle data from Firestore
+  /// Get real-time stream of user's cycle data from Firestore
+  Stream<void> getUserCycleDataStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Stream.empty();
+    }
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((docSnapshot) {
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        _lastPeriodDate = (data?['lastPeriodDate'] as Timestamp?)?.toDate();
+        _cycleLength = data?['cycleLength'] ?? 28;
+        _periodDuration = data?['periodDuration'] ?? 5;
+
+        if (_lastPeriodDate != null) {
+          _algorithm = CycleAlgorithm(
+            lastPeriod: _lastPeriodDate!,
+            cycleLength: _cycleLength,
+            periodLength: _periodDuration,
+          );
+          _dataLoaded = true;
+        } else {
+          _dataLoaded = false;
+        }
+      } else {
+        _dataLoaded = false;
+      }
+    });
+  }
+
+  /// Fetch user's cycle data from Firestore (one-time)
   Future<void> loadUserCycleData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;

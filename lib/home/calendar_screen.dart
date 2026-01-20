@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart' show TableCalendar, HeaderStyle, CalendarBuilders, isSameDay;
+import '../services/cycle_data_service.dart';
+import 'cycle_algorithm.dart';
+import 'first_time_setup.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -10,17 +13,31 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   bool isMonth = true;
-
-  DateTime focusedDay = DateTime(2026, 1);
-  DateTime selectedDay = DateTime(2026, 1, 14);
-
-  final List<int> fertileDays = [7];
-  final List<int> predictedPeriodDays = [22, 23, 24, 25, 26];
+  late DateTime focusedDay;
+  late DateTime selectedDay;
+  late CycleDataService cycleService;
 
   final List<String> months = const [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+    focusedDay = DateTime(today.year, today.month);
+    selectedDay = today;
+    cycleService = CycleDataService();
+    _loadCycleData();
+  }
+
+  Future<void> _loadCycleData() async {
+    await cycleService.loadUserCycleData();
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +131,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
       firstDay: DateTime.utc(2020),
       lastDay: DateTime.utc(2030),
       selectedDayPredicate: (d) => isSameDay(d, selectedDay),
+      onDaySelected: (selectedDate, focusedDate) {
+        setState(() {
+          selectedDay = selectedDate;
+          focusedDay = focusedDate;
+        });
+      },
       calendarBuilders: CalendarBuilders(
         defaultBuilder: (_, day, __) => _dayCell(day),
         todayBuilder: (_, day, __) => _todayCell(day),
@@ -164,10 +187,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // 🟢 Normal / dotted day
   Widget _dayCell(DateTime day) {
-    final int d = day.day;
-
-    final bool isFertile = fertileDays.contains(d);
-    final bool isPredicted = predictedPeriodDays.contains(d);
+    final dayType = cycleService.getDayType(day);
+    final Color color = _getDayColor(dayType);
 
     return Center(
       child: Container(
@@ -175,26 +196,36 @@ class _TrackerScreenState extends State<TrackerScreen> {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: isFertile
-              ? Border.all(color: Colors.teal, width: 2)
-              : isPredicted
-                  ? Border.all(color: Colors.pink, width: 2)
+          color: dayType == DayType.period ? color : Colors.transparent,
+          border: dayType == DayType.fertile
+              ? Border.all(color: color, width: 2)
+              : dayType == DayType.ovulation
+                  ? Border.all(color: color, width: 2)
                   : null,
         ),
         child: Center(
           child: Text(
-            "$d",
+            "${day.day}",
             style: TextStyle(
-              color: isPredicted
-                  ? Colors.pink
-                  : isFertile
-                      ? Colors.teal
-                      : Colors.black,
+              color: dayType == DayType.period ? Colors.white : Colors.black,
             ),
           ),
         ),
       ),
     );
+  }
+
+  Color _getDayColor(DayType type) {
+    switch (type) {
+      case DayType.period:
+        return Colors.pink;
+      case DayType.fertile:
+        return Colors.teal;
+      case DayType.ovulation:
+        return Colors.purple;
+      case DayType.normal:
+        return Colors.grey;
+    }
   }
 
   // 🔘 TODAY
@@ -226,13 +257,29 @@ class _TrackerScreenState extends State<TrackerScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      onPressed: () {},
+      onPressed: () {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => FirstTimeSetup(
+            onComplete: () {
+              // Reload data after edit
+              cycleService.loadUserCycleData();
+              setState(() {});
+              Navigator.pop(context);
+            },
+          ),
+        );
+      },
       child: const Text("Edit period dates"),
     );
   }
 
   // ⬇ Bottom card
   Widget _bottomCard() {
+    final currentCycleDay = cycleService.getCurrentCycleDay();
+    final dayName = _getDayName(selectedDay);
+    
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -245,17 +292,31 @@ class _TrackerScreenState extends State<TrackerScreen> {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
+        children: [
           Text(
-            "Jan 14 · Cycle day 22",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            "$dayName ${selectedDay.day} · Cycle day $currentCycleDay",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          CircleAvatar(
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.close, color: Colors.white),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedDay = DateTime.now();
+                focusedDay = DateTime.now();
+              });
+            },
+            child: const CircleAvatar(
+              backgroundColor: Colors.grey,
+              child: Icon(Icons.close, color: Colors.white),
+            ),
           )
         ],
       ),
     );
+  }
+
+  String _getDayName(DateTime date) {
+    final index = date.weekday - 1;
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[index];
   }
 }

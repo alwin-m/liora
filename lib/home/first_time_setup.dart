@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/cycle_data_service.dart';
 
 class FirstTimeSetup extends StatefulWidget {
   final Function onComplete;
@@ -74,6 +75,15 @@ class _FirstTimeSetupState extends State<FirstTimeSetup> with SingleTickerProvid
     setState(() => isLoading = true);
     
     try {
+      // Use CycleDataService to update data
+      final cycleService = CycleDataService();
+      await cycleService.updateCycleData(
+        lastPeriodDate: lastPeriodDate!,
+        cycleLength: cycleLength,
+        periodDuration: periodDuration,
+      );
+      
+      // Also save dateOfBirth if not already saved
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await FirebaseFirestore.instance
@@ -81,11 +91,6 @@ class _FirstTimeSetupState extends State<FirstTimeSetup> with SingleTickerProvid
             .doc(user.uid)
             .update({
           'dateOfBirth': Timestamp.fromDate(dateOfBirth!),
-          'lastPeriodDate': Timestamp.fromDate(lastPeriodDate!),
-          'cycleLength': cycleLength,
-          'periodDuration': periodDuration,
-          'setupCompleted': true,
-          'setupDate': Timestamp.now(),
         });
       }
       

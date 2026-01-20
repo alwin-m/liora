@@ -7,6 +7,7 @@ import 'calendar_screen.dart';
 import 'shop_screen.dart';
 import 'profile_screen.dart';
 import 'first_time_setup.dart';
+import '../services/cycle_data_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,21 +22,23 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDay = DateTime.now();
   bool setupCompleted = false;
   bool isCheckingSetup = true;
-
-  final algo = CycleAlgorithm(
-    lastPeriod: DateTime(2025, 1, 10),
-    cycleLength: 28,
-    periodLength: 5,
-  );
+  String userName = 'User';
+  
+  late CycleDataService cycleService;
 
   @override
   void initState() {
     super.initState();
-    _checkIfFirstTimeSetup();
+    cycleService = CycleDataService();
+    _initializeData();
   }
 
-  Future<void> _checkIfFirstTimeSetup() async {
+  Future<void> _initializeData() async {
     try {
+      // Load cycle data
+      await cycleService.loadUserCycleData();
+      
+      // Load user name
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final docSnapshot = await FirebaseFirestore.instance
@@ -45,7 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (mounted) {
           setState(() {
-            setupCompleted = docSnapshot.data()?['setupCompleted'] ?? false;
+            setupCompleted = cycleService.isDataLoaded;
+            userName = docSnapshot.data()?['name'] ?? 'User';
             isCheckingSetup = false;
           });
 
@@ -68,7 +72,24 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (context) => FirstTimeSetup(
         onComplete: () {
+          // Reload data after setup
+          cycleService.loadUserCycleData();
           setState(() => setupCompleted = true);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _showEditSetup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => FirstTimeSetup(
+        onComplete: () {
+          // Reload data after edit
+          cycleService.loadUserCycleData();
+          setState(() {});
           Navigator.pop(context);
         },
       ),
@@ -112,19 +133,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _homeUI() {
+    final today = DateTime.now();
+    final formattedDate =
+        '${today.day} ${_monthName(today.month)}, ${today.year}';
+    final nextPeriodRange = cycleService.getNextPeriodDateRange();
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("LIORA",
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.pink.shade400,
-                    letterSpacing: 1.2)),
-            const SizedBox(height: 20),
+            // Header with name and date
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("LIORA",
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.pink.shade400,
+                            letterSpacing: 1.2)),
+                    if (setupCompleted)
+                      TextButton.icon(
+                        onPressed: _showEditSetup,
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Edit'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.pink.shade400,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text("Hey, $userName! 👋",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text(formattedDate,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600)),
+              ],
+            ),
+            const SizedBox(height: 24),
 
             // Calendar
             Card(
@@ -142,11 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() {selectedDay = s; focusedDay = f;}),
                   calendarBuilders: CalendarBuilders(
                     defaultBuilder: (c, d, _) =>
-                        _dayBox(d, algo.getType(d)),
+                        _dayBox(d, cycleService.getDayType(d)),
                     todayBuilder: (c, d, _) =>
-                        _dayBox(d, algo.getType(d), today: true),
+                        _dayBox(d, cycleService.getDayType(d), today: true),
                     selectedBuilder: (c, d, _) =>
-                        _dayBox(d, algo.getType(d), selected: true),
+                        _dayBox(d, cycleService.getDayType(d), selected: true),
                   ),
                   headerStyle: HeaderStyle(
                       titleCentered: true,
@@ -161,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 24),
 
-            _nextPeriodCard(),
+            _nextPeriodCard(nextPeriodRange),
 
             const SizedBox(height: 24),
 
@@ -178,6 +235,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
 
   Widget _dayBox(DateTime day, DayType type,
@@ -208,30 +273,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _nextPeriodCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [Colors.pink.shade200, Colors.purple.shade100]),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.pink.shade100, blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text("Your Next Period",
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.white)),
-          SizedBox(height: 8),
-          Text("Dec 10 - 14",
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white)),
-        ],
+  Widget _nextPeriodCard(DateRange? nextPeriodRange) {
+    final periodText = nextPeriodRange?.formattedString ?? 'Loading...';
+    
+    return GestureDetector(
+      onTap: setupCompleted ? () => setState(() => index = 1) : null,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: [Colors.pink.shade200, Colors.purple.shade100]),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: Colors.pink.shade100, blurRadius: 10)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Your Next Period",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white)),
+            const SizedBox(height: 8),
+            Text(periodText,
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white)),
+          ],
+        ),
       ),
     );
   }
@@ -241,10 +311,16 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 160,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: const [
-          _Item("Sanitary Pads", "₹199", Icons.favorite),
-          _Item("Heat Pack", "₹299", Icons.local_fire_department),
-          _Item("Pain Relief", "₹99", Icons.healing),
+        children: [
+          _Item("Sanitary Pads", "₹199", Icons.favorite, () {
+            setState(() => index = 2);
+          }),
+          _Item("Heat Pack", "₹299", Icons.local_fire_department, () {
+            setState(() => index = 2);
+          }),
+          _Item("Pain Relief", "₹99", Icons.healing, () {
+            setState(() => index = 2);
+          }),
         ],
       ),
     );
@@ -254,30 +330,35 @@ class _HomeScreenState extends State<HomeScreen> {
 class _Item extends StatelessWidget {
   final String name, price;
   final IconData icon;
-  const _Item(this.name, this.price, this.icon);
+  final VoidCallback? onTap;
+  
+  const _Item(this.name, this.price, this.icon, [this.onTap]);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 8)]),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Icon(icon, color: Colors.pinkAccent, size: 36),
-          Text(name,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(price,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 8)]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Icon(icon, color: Colors.pinkAccent, size: 36),
+            Text(name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(price,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
                   color: Colors.pink.shade400)),
-        ],
+          ],
+        ),
       ),
     );
   }

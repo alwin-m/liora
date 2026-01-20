@@ -10,12 +10,31 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  late final TextEditingController emailController;
+  late final TextEditingController passwordController;
 
   bool isLoading = false;
   bool _obscurePassword = true; // 👁️ Password visibility state
   String? errorMessage;
+  bool _isFormValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController();
+    passwordController = TextEditingController();
+    
+    // Add listeners for real-time form validation
+    emailController.addListener(_checkFormValidity);
+    passwordController.addListener(_checkFormValidity);
+  }
+
+  void _checkFormValidity() {
+    final isValid = emailController.text.isNotEmpty && passwordController.text.isNotEmpty;
+    if (isValid != _isFormValid) {
+      setState(() => _isFormValid = isValid);
+    }
+  }
 
   Future<void> login() async {
     setState(() {
@@ -46,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'An unexpected 404 error occurred.';
+        errorMessage = 'An unexpected error occurred. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -215,12 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : (emailController.text.isNotEmpty &&
-                                    passwordController.text.isNotEmpty)
-                                ? login
-                                : null,
+                        onPressed: isLoading || !_isFormValid ? null : login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF4A6B8),
                           disabledBackgroundColor: Colors.grey.shade300,

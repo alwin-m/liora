@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Screens/Change_Password_Screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -75,24 +76,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _SettingsItem(
                 icon: Icons.lock_outline,
                 title: 'Change password',
-                onTap: () {},
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangePasswordScreen(),
+                    ),
+                  );
+                },
+              ),
+              _SettingsItem(
+                icon: Icons.history,
+                title: 'Cycle history',
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cycle history coming soon'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
               _SettingsItem(
                 icon: Icons.logout,
                 title: 'Log out',
-                onTap: () {},
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _logout();
+                },
               ),
               _SettingsItem(
                 icon: Icons.delete_outline,
                 title: 'Delete account',
                 isDestructive: true,
-                onTap: () {},
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Delete account coming soon'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: $e')),
+      );
+    }
   }
 
   @override

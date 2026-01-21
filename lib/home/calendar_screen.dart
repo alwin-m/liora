@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../core/cycle_state.dart';
-import '../core/local_cycle_storage.dart';
+import '../core/cycle_state_manager.dart';
 import '../core/prediction_engine.dart';
 import 'period_input_sheet.dart';
 
@@ -27,12 +27,13 @@ class _TrackerScreenState extends State<TrackerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadState();
+    _initializeState();
   }
 
-  /// Load cycle state from storage
-  Future<void> _loadState() async {
-    final loadedState = await LocalCycleStorage.loadCycleState();
+  /// Load or get cached state (optimized for quick access)
+  Future<void> _initializeState() async {
+    final manager = CycleStateManager.instance;
+    final loadedState = await manager.loadState();
     setState(() {
       state = loadedState;
       selectedDay = DateTime.now();
@@ -115,8 +116,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
       state.markPeriodStop(date);
     }
 
-    // Persist state
-    await LocalCycleStorage.saveCycleState(state);
+    // Persist state using manager (also caches it)
+    final manager = CycleStateManager.instance;
+    await manager.updateState(state);
 
     // Refresh calendar immediately
     setState(() {
@@ -353,7 +355,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     // Update state and save
     state.markPeriodStart(pickedDate);
-    await LocalCycleStorage.saveCycleState(state);
+    final manager = CycleStateManager.instance;
+    await manager.updateState(state);
 
     setState(() {
       selectedDay = pickedDate;

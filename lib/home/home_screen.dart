@@ -8,7 +8,7 @@ import 'package:lioraa/home/shop_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../core/cycle_state.dart';
-import '../core/local_cycle_storage.dart';
+import '../core/cycle_state_manager.dart';
 import '../core/prediction_engine.dart';
 
 
@@ -30,12 +30,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCycleState();
+    // Initialize state from manager (loads once, then cached)
+    _initializeState();
   }
 
-  /// Load cycle state from storage
-  Future<void> _loadCycleState() async {
-    final loadedState = await LocalCycleStorage.loadCycleState();
+  /// Load cycle state from manager (optimized for single load)
+  Future<void> _initializeState() async {
+    final manager = CycleStateManager.instance;
+    final loadedState = await manager.loadState();
     if (mounted) {
       setState(() {
         state = loadedState;

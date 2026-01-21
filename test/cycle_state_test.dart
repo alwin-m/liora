@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lioraa/core/cycle_state.dart';
-import 'package:lioraa/core/cycle_history_entry.dart';
 
 void main() {
   group('CycleState Tests', () {

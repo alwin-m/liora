@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -14,6 +15,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final confirmPasswordController = TextEditingController();
 
   bool isLoading = false;
+  bool _obscureOldPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   Future<void> changePassword() async {
     if (newPasswordController.text !=
@@ -58,25 +62,75 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
+            Text(
+              'Update Password',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 24),
             TextField(
               controller: oldPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Old password"),
+              obscureText: _obscureOldPassword,
+              decoration: InputDecoration(
+                labelText: "Old password",
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureOldPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureOldPassword = !_obscureOldPassword;
+                    });
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 
             TextField(
               controller: newPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "New password"),
+              obscureText: _obscureNewPassword,
+              decoration: InputDecoration(
+                labelText: "New password",
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureNewPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureNewPassword = !_obscureNewPassword;
+                    });
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 
             TextField(
               controller: confirmPasswordController,
-              obscureText: true,
-              decoration:
-                  const InputDecoration(labelText: "Confirm new password"),
+              obscureText: _obscureConfirmPassword,
+              decoration: InputDecoration(
+                labelText: "Confirm new password",
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    });
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 32),
 

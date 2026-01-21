@@ -53,9 +53,6 @@ import 'admin/add_product.dart';
 import 'admin/view_products.dart';
 import 'admin/manage_users.dart';
 
-// 🔹 DESIGN SYSTEM
-import 'core/theme.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -72,7 +69,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liora',
-      theme: AppTheme.lightTheme,
+      theme: ThemeData(primarySwatch: Colors.pink),
 
       routes: {
         '/': (context) => const SplashScreen(),

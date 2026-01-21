@@ -1,7 +1,7 @@
 import 'cycle_history_entry.dart';
 
 /// STATE MACHINE: Two possible bleeding states
-enum BleedingState { NO_ACTIVE_BLEEDING, ACTIVE_BLEEDING }
+enum BleedingState { noActiveBleeding, activeBleeding }
 
 /// ===================================================================
 /// SINGLE SOURCE OF TRUTH FOR ALL CYCLE STATE
@@ -34,7 +34,7 @@ class CycleState {
   int defaultBleedingLength;
 
   CycleState({
-    this.bleedingState = BleedingState.NO_ACTIVE_BLEEDING,
+    this.bleedingState = BleedingState.noActiveBleeding,
     this.bleedingStartDate,
     this.bleedingEndDate,
     this.averageCycleLength = 28,
@@ -48,7 +48,7 @@ class CycleState {
 
   /// User marked period START
   void markPeriodStart(DateTime startDate) {
-    bleedingState = BleedingState.ACTIVE_BLEEDING;
+    bleedingState = BleedingState.activeBleeding;
     bleedingStartDate = startDate;
     bleedingEndDate = null; // Reset end until user confirms stop
 
@@ -66,7 +66,7 @@ class CycleState {
   void markPeriodStop(DateTime stopDate) {
     if (bleedingStartDate == null) return;
 
-    bleedingState = BleedingState.NO_ACTIVE_BLEEDING;
+    bleedingState = BleedingState.noActiveBleeding;
     bleedingEndDate = stopDate;
 
     // Calculate actual bleeding length
@@ -168,9 +168,9 @@ class CycleState {
 
   factory CycleState.fromJson(Map<String, dynamic> json) {
     return CycleState(
-      bleedingState: json['bleedingState']?.contains('ACTIVE_BLEEDING') ?? false
-          ? BleedingState.ACTIVE_BLEEDING
-          : BleedingState.NO_ACTIVE_BLEEDING,
+      bleedingState: json['bleedingState']?.contains('activeBleeding') ?? false
+          ? BleedingState.activeBleeding
+          : BleedingState.noActiveBleeding,
       bleedingStartDate: json['bleedingStartDate'] != null
           ? DateTime.parse(json['bleedingStartDate'])
           : null,

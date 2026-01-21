@@ -14,7 +14,7 @@ class PredictionEngine {
     }
 
     // If currently bleeding, next period = start + cycle length
-    if (state.bleedingState == BleedingState.ACTIVE_BLEEDING) {
+    if (state.bleedingState == BleedingState.activeBleeding) {
       return state.bleedingStartDate!
           .add(Duration(days: state.getEffectiveCycleLength()));
     }
@@ -68,7 +68,7 @@ class PredictionEngine {
     }
 
     // ========== ACTIVE BLEEDING (NO END YET) ==========
-    if (state.bleedingState == BleedingState.ACTIVE_BLEEDING &&
+    if (state.bleedingState == BleedingState.activeBleeding &&
         state.bleedingStartDate != null &&
         state.bleedingEndDate == null) {
       final start = DateTime(state.bleedingStartDate!.year,
@@ -88,7 +88,7 @@ class PredictionEngine {
       final nextEnd = getNextPeriodEnd(state);
 
       // Only show predicted if not already in confirmed/active
-      if (state.bleedingState == BleedingState.NO_ACTIVE_BLEEDING ||
+      if (state.bleedingState == BleedingState.noActiveBleeding ||
           state.bleedingEndDate != null) {
         final predStart = DateTime(nextStart.year, nextStart.month,
             nextStart.day);

@@ -88,7 +88,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   // 📱 Show iOS-style bottom sheet for period input
   void _showPeriodInputSheet() async {
     // Branch on current bleeding state
-    final isPeriodActive = state.bleedingState == BleedingState.ACTIVE_BLEEDING;
+    final isPeriodActive = state.bleedingState == BleedingState.activeBleeding;
 
     showModalBottomSheet(
       context: context,

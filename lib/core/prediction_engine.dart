@@ -15,14 +15,16 @@ class PredictionEngine {
 
     // If currently bleeding, next period = start + cycle length
     if (state.bleedingState == BleedingState.activeBleeding) {
-      return state.bleedingStartDate!
-          .add(Duration(days: state.getEffectiveCycleLength()));
+      return state.bleedingStartDate!.add(
+        Duration(days: state.getEffectiveCycleLength()),
+      );
     }
 
     // If bleeding stopped, next = start + cycle length
     if (state.bleedingEndDate != null) {
-      return state.bleedingStartDate!
-          .add(Duration(days: state.getEffectiveCycleLength()));
+      return state.bleedingStartDate!.add(
+        Duration(days: state.getEffectiveCycleLength()),
+      );
     }
 
     return DateTime.now().add(Duration(days: 14));
@@ -32,7 +34,8 @@ class PredictionEngine {
   static DateTime getNextPeriodEnd(CycleState state) {
     final nextStart = getNextPeriodStart(state);
     return nextStart.add(
-        Duration(days: state.getEffectiveBleedingLength() - 1));
+      Duration(days: state.getEffectiveBleedingLength() - 1),
+    );
   }
 
   /// Calculate ovulation date (14 days before next period)
@@ -50,74 +53,100 @@ class PredictionEngine {
     );
   }
 
+  /// Helper: Normalize a date to midnight for comparison
+  static DateTime _normalize(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  /// Helper: Check if a date is within a range (inclusive)
+  static bool _isInRange(DateTime date, DateTime start, DateTime end) {
+    final d = _normalize(date);
+    final s = _normalize(start);
+    final e = _normalize(end);
+    return !d.isBefore(s) && !d.isAfter(e);
+  }
+
   /// Determine day type for calendar rendering
+  ///
+  /// Rendering priority (as per spec):
+  /// 1. Today highlight (handled by UI, not here)
+  /// 2. Confirmed bleeding days (solid red)
+  /// 3. Active bleeding days (animated / live red)
+  /// 4. Predicted bleeding days (light red / dotted)
+  /// 5. Ovulation window
+  /// 6. Fertile window
+  /// 7. Normal
   static DayType getDayType(DateTime date, CycleState state) {
-    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final normalizedDate = _normalize(date);
 
-    // ========== CONFIRMED BLEEDING DAYS ==========
-    if (state.bleedingStartDate != null && state.bleedingEndDate != null) {
-      final start = DateTime(state.bleedingStartDate!.year,
-          state.bleedingStartDate!.month, state.bleedingStartDate!.day);
-      final end = DateTime(state.bleedingEndDate!.year,
-          state.bleedingEndDate!.month, state.bleedingEndDate!.day);
-
-      if (normalizedDate.isAfter(start.subtract(const Duration(days: 1))) &&
-          normalizedDate.isBefore(end.add(const Duration(days: 1)))) {
-        return DayType.period;
-      }
-    }
-
-    // ========== ACTIVE BLEEDING (NO END YET) ==========
-    if (state.bleedingState == BleedingState.activeBleeding &&
-        state.bleedingStartDate != null &&
-        state.bleedingEndDate == null) {
-      final start = DateTime(state.bleedingStartDate!.year,
-          state.bleedingStartDate!.month, state.bleedingStartDate!.day);
-      final provisionalEnd = start.add(
-          Duration(days: state.getEffectiveBleedingLength() - 1));
-
-      if (normalizedDate.isAfter(start.subtract(const Duration(days: 1))) &&
-          normalizedDate.isBefore(provisionalEnd.add(const Duration(days: 1)))) {
-        return DayType.period;
-      }
-    }
-
-    // ========== PREDICTED BLEEDING ==========
-    if (state.cycleHistory.isNotEmpty) {
-      final nextStart = getNextPeriodStart(state);
-      final nextEnd = getNextPeriodEnd(state);
-
-      // Only show predicted if not already in confirmed/active
-      if (state.bleedingState == BleedingState.noActiveBleeding ||
-          state.bleedingEndDate != null) {
-        final predStart = DateTime(nextStart.year, nextStart.month,
-            nextStart.day);
-        final predEnd = DateTime(nextEnd.year, nextEnd.month, nextEnd.day);
-
-        if (normalizedDate
-                .isAfter(predStart.subtract(const Duration(days: 1))) &&
-            normalizedDate.isBefore(predEnd.add(const Duration(days: 1)))) {
-          return DayType.predictedPeriod;
+    // ========== 1. CHECK ALL HISTORICAL CONFIRMED BLEEDING DAYS ==========
+    // This ensures past confirmed periods are always shown correctly
+    for (final cycle in state.confirmedCycles) {
+      if (cycle.cycleEndDate != null) {
+        if (_isInRange(
+          normalizedDate,
+          cycle.cycleStartDate,
+          cycle.cycleEndDate!,
+        )) {
+          return DayType.period;
         }
       }
     }
 
-    // ========== OVULATION ==========
+    // ========== 2. CURRENT CONFIRMED BLEEDING (start and end marked) ==========
+    if (state.bleedingStartDate != null && state.bleedingEndDate != null) {
+      if (_isInRange(
+        normalizedDate,
+        state.bleedingStartDate!,
+        state.bleedingEndDate!,
+      )) {
+        return DayType.period;
+      }
+    }
+
+    // ========== 3. ACTIVE BLEEDING (ongoing, no end yet) ==========
+    if (state.isActiveBleeding &&
+        state.bleedingStartDate != null &&
+        state.bleedingEndDate == null) {
+      final start = _normalize(state.bleedingStartDate!);
+      // For active bleeding, show from start to today (or start + average)
+      final today = _normalize(DateTime.now());
+      final provisionalEnd = start.add(
+        Duration(days: state.getEffectiveBleedingLength() - 1),
+      );
+
+      // Use whichever is later: today or provisional end
+      final effectiveEnd = today.isAfter(provisionalEnd)
+          ? today
+          : provisionalEnd;
+
+      if (_isInRange(normalizedDate, start, effectiveEnd)) {
+        return DayType.activePeriod;
+      }
+    }
+
+    // ========== 4. PREDICTED BLEEDING ==========
+    // Only show predictions when not currently bleeding
+    if (!state.isActiveBleeding || state.bleedingEndDate != null) {
+      final nextStart = getNextPeriodStart(state);
+      final nextEnd = getNextPeriodEnd(state);
+
+      if (_isInRange(normalizedDate, nextStart, nextEnd)) {
+        return DayType.predictedPeriod;
+      }
+    }
+
+    // ========== 5. OVULATION ==========
     final ovulation = getOvulationDate(state);
-    final ovulationDate = DateTime(ovulation.year, ovulation.month,
-        ovulation.day);
-    if (normalizedDate.isAtSameMomentAs(ovulationDate)) {
+    if (_normalize(ovulation).isAtSameMomentAs(normalizedDate)) {
       return DayType.ovulation;
     }
 
-    // ========== FERTILE WINDOW ==========
+    // ========== 6. FERTILE WINDOW ==========
     final fertile = getFertileWindow(state);
-    if (normalizedDate.isAfter(
-            DateTime(fertile.start.year, fertile.start.month,
-                fertile.start.day)) &&
-        normalizedDate.isBefore(
-            DateTime(fertile.end.year, fertile.end.month, fertile.end.day)
-                .add(const Duration(days: 1)))) {
+    // Exclude ovulation day itself (already handled above)
+    if (_isInRange(normalizedDate, fertile.start, fertile.end) &&
+        !_normalize(ovulation).isAtSameMomentAs(normalizedDate)) {
       return DayType.fertile;
     }
 
@@ -129,6 +158,7 @@ class PredictionEngine {
 
 enum DayType {
   period, // Confirmed bleeding (solid red)
+  activePeriod, // Currently ongoing bleeding (animated/live red)
   predictedPeriod, // Predicted bleeding (light red)
   ovulation, // Ovulation day (purple)
   fertile, // Fertile window (green)

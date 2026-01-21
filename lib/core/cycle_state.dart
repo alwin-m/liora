@@ -1,4 +1,5 @@
 import 'cycle_history_entry.dart';
+import 'prediction_engine.dart';
 
 /// STATE MACHINE: Two possible bleeding states
 enum BleedingState { noActiveBleeding, activeBleeding }
@@ -70,12 +71,14 @@ class CycleState {
     bleedingEndDate = stopDate;
 
     // Calculate actual bleeding length
-    final actualBleedingLength = stopDate.difference(bleedingStartDate!).inDays + 1;
+    final actualBleedingLength =
+        stopDate.difference(bleedingStartDate!).inDays + 1;
 
     // If we have a previous confirmed cycle, calculate actual cycle length
     int actualCycleLength = averageCycleLength;
     if (cycleHistory.length >= 2) {
-      final previousStart = cycleHistory[cycleHistory.length - 2].cycleStartDate;
+      final previousStart =
+          cycleHistory[cycleHistory.length - 2].cycleStartDate;
       actualCycleLength = bleedingStartDate!.difference(previousStart).inDays;
     }
 
@@ -95,36 +98,93 @@ class CycleState {
     _updateAveragesFromHistory();
   }
 
+  /// ==================== CONVENIENCE GETTERS ====================
+
+  /// Boolean accessor for active bleeding state
+  bool get isActiveBleeding => bleedingState == BleedingState.activeBleeding;
+
+  /// Get all confirmed cycles from history
+  List<CycleHistoryEntry> get confirmedCycles =>
+      cycleHistory.where((c) => c.isConfirmed).toList();
+
+  /// Get all historical bleeding date ranges (for calendar rendering)
+  List<DateRange> getHistoricalBleedingRanges() {
+    final ranges = <DateRange>[];
+    for (final cycle in confirmedCycles) {
+      if (cycle.cycleEndDate != null) {
+        ranges.add(
+          DateRange(start: cycle.cycleStartDate, end: cycle.cycleEndDate!),
+        );
+      }
+    }
+    return ranges;
+  }
+
   /// ==================== PRIVATE HELPERS ====================
 
   /// Recalculate weighted averages from history
   /// Last 3 cycles: 60% weight, older cycles: 40% weight
+  ///
+  /// Algorithm:
+  /// - Recent cycles (last 3) share 60% of total weight
+  /// - Older cycles share 40% of total weight
+  /// - This ensures predictions adapt gradually, not wildly
   void _updateAveragesFromHistory() {
     if (cycleHistory.isEmpty) return;
 
-    final confirmedCycles =
-        cycleHistory.where((c) => c.isConfirmed).toList();
-    if (confirmedCycles.isEmpty) return;
+    final confirmed = confirmedCycles;
+    if (confirmed.isEmpty) return;
 
-    int totalCycleLength = 0;
-    int totalBleedingLength = 0;
+    // Simple average for small history
+    if (confirmed.length <= 3) {
+      int totalCycle = 0;
+      int totalBleeding = 0;
+      for (final c in confirmed) {
+        totalCycle += c.cycleLength;
+        totalBleeding += c.bleedingLength;
+      }
+      averageCycleLength = (totalCycle / confirmed.length).round().clamp(
+        18,
+        45,
+      );
+      averageBleedingLength = (totalBleeding / confirmed.length).round().clamp(
+        2,
+        10,
+      );
+      return;
+    }
+
+    // Weighted average for larger history
+    double weightedCycleSum = 0;
+    double weightedBleedingSum = 0;
     double totalWeight = 0;
 
-    // Weight calculation
-    for (int i = 0; i < confirmedCycles.length; i++) {
-      final cycle = confirmedCycles[i];
-      final weight = i >= confirmedCycles.length - 3
-          ? 0.6 / 3 // Last 3 cycles split 60% equally
-          : 0.4 / (confirmedCycles.length - 3).clamp(1, double.infinity);
+    final recentCount = 3;
+    final olderCount = confirmed.length - recentCount;
 
-      totalCycleLength += (cycle.cycleLength * weight).toInt();
-      totalBleedingLength += (cycle.bleedingLength * weight).toInt();
+    for (int i = 0; i < confirmed.length; i++) {
+      final cycle = confirmed[i];
+      double weight;
+
+      if (i >= confirmed.length - recentCount) {
+        // Last 3 cycles: each gets 60% / 3 = 20% weight
+        weight = 0.6 / recentCount;
+      } else {
+        // Older cycles: share 40% equally
+        weight = 0.4 / olderCount;
+      }
+
+      weightedCycleSum += cycle.cycleLength * weight;
+      weightedBleedingSum += cycle.bleedingLength * weight;
       totalWeight += weight;
     }
 
-    averageCycleLength = (totalCycleLength / totalWeight).round().clamp(18, 40);
-    averageBleedingLength =
-        (totalBleedingLength / totalWeight).round().clamp(2, 10);
+    // Normalize by total weight (should be ~1.0 but normalize for safety)
+    averageCycleLength = (weightedCycleSum / totalWeight).round().clamp(18, 45);
+    averageBleedingLength = (weightedBleedingSum / totalWeight).round().clamp(
+      2,
+      10,
+    );
   }
 
   /// ==================== QUERIES ====================
@@ -179,7 +239,8 @@ class CycleState {
           : null,
       averageCycleLength: json['averageCycleLength'] ?? 28,
       averageBleedingLength: json['averageBleedingLength'] ?? 5,
-      cycleHistory: (json['cycleHistory'] as List?)
+      cycleHistory:
+          (json['cycleHistory'] as List?)
               ?.map((c) => CycleHistoryEntry.fromJson(c))
               .toList() ??
           [],

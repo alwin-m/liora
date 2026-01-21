@@ -20,8 +20,18 @@ class _TrackerScreenState extends State<TrackerScreen> {
   late CycleState state;
 
   final List<String> months = const [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   @override
@@ -141,8 +151,21 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthNames = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${monthNames[date.month]} ${date.day}';
   }
 
@@ -251,36 +274,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // 🎨 Day Cell - Pure rendering from state
   Widget _dayCell(DateTime day) {
-    final dayType = PredictionEngine.getDayType(day, state);
-
-    Color? backgroundColor;
-    Color? borderColor;
-    Color textColor = Colors.black;
-
-    // Rendering order as per spec:
-    // 1. Confirmed bleeding (solid red)
-    // 2. Predicted bleeding (light red)
-    // 3. Ovulation (purple)
-    // 4. Fertile window (green)
-    // 5. Normal (transparent)
-
-    if (dayType == DayType.period) {
-      backgroundColor = const Color(0xFFFFE0E6); // Confirmed: light red
-      borderColor = Colors.pink;
-      textColor = Colors.pink;
-    } else if (dayType == DayType.predictedPeriod) {
-      backgroundColor = const Color(0xFFFFE0E6); // Predicted: lighter red
-      borderColor = Colors.pink.shade200;
-      textColor = Colors.pink.shade300;
-    } else if (dayType == DayType.ovulation) {
-      backgroundColor = const Color(0xFFE8E0F8); // Ovulation: purple
-      borderColor = Colors.purple;
-      textColor = Colors.purple;
-    } else if (dayType == DayType.fertile) {
-      backgroundColor = const Color(0xFFDFF6DD); // Fertile: light green
-      borderColor = Colors.teal;
-      textColor = Colors.teal;
-    }
+    final colors = _getDayColors(day);
 
     return Center(
       child: Container(
@@ -288,16 +282,16 @@ class _TrackerScreenState extends State<TrackerScreen> {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: backgroundColor,
-          border: borderColor != null
-              ? Border.all(color: borderColor, width: 2)
+          color: colors.backgroundColor,
+          border: colors.borderColor != null
+              ? Border.all(color: colors.borderColor!, width: 2)
               : null,
         ),
         child: Center(
           child: Text(
             "${day.day}",
             style: TextStyle(
-              color: textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.normal,
             ),
           ),
@@ -306,19 +300,94 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  /// Helper to get colors for a day based on its type
+  /// Centralized for reuse by both _dayCell and _todayCell
+  _DayColors _getDayColors(DateTime day) {
+    final dayType = PredictionEngine.getDayType(day, state);
+
+    Color? backgroundColor;
+    Color? borderColor;
+    Color textColor = Colors.black;
+
+    // Rendering priority as per spec:
+    // 1. Confirmed bleeding (solid red)
+    // 2. Active bleeding (vibrant red with animation potential)
+    // 3. Predicted bleeding (light red)
+    // 4. Ovulation (purple)
+    // 5. Fertile window (green)
+    // 6. Normal (transparent)
+
+    switch (dayType) {
+      case DayType.period:
+        backgroundColor = const Color(0xFFFFE0E6); // Confirmed: light pink
+        borderColor = Colors.pink;
+        textColor = Colors.pink;
+        break;
+      case DayType.activePeriod:
+        backgroundColor = const Color(0xFFFFCDD2); // Active: more vibrant pink
+        borderColor = Colors.pink.shade600;
+        textColor = Colors.pink.shade700;
+        break;
+      case DayType.predictedPeriod:
+        backgroundColor = const Color(0xFFFFE0E6).withOpacity(0.6);
+        borderColor = Colors.pink.shade200;
+        textColor = Colors.pink.shade300;
+        break;
+      case DayType.ovulation:
+        backgroundColor = const Color(0xFFE8E0F8);
+        borderColor = Colors.purple;
+        textColor = Colors.purple;
+        break;
+      case DayType.fertile:
+        backgroundColor = const Color(0xFFDFF6DD);
+        borderColor = Colors.teal;
+        textColor = Colors.teal;
+        break;
+      case DayType.normal:
+        break;
+    }
+
+    return _DayColors(
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      textColor: textColor,
+    );
+  }
+
+  /// Today cell - shows day type colors PLUS a "today" indicator
+  /// Critical fix: Today must show bleeding/fertile colors, not just grey
   Widget _todayCell(DateTime day) {
+    final colors = _getDayColors(day);
+
+    // Use day type color if available, otherwise use grey for "today"
+    final bgColor = colors.backgroundColor ?? const Color(0xFFE0E0E0);
+
     return Center(
       child: Container(
-        width: 36,
-        height: 36,
-        decoration: const BoxDecoration(
-          color: Color(0xFFE0E0E0),
+        width: 40, // Slightly larger to indicate "today"
+        height: 40,
+        decoration: BoxDecoration(
+          color: bgColor,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: colors.borderColor ?? Colors.grey.shade600,
+            width: 2.5, // Thicker border for "today"
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Center(
           child: Text(
             "${day.day}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colors.textColor,
+            ),
           ),
         ),
       ),
@@ -330,9 +399,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color.fromARGB(255, 222, 120, 154),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       onPressed: _editLastPeriodDate,
       child: const Text("Edit period dates"),
@@ -343,7 +410,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Future<void> _editLastPeriodDate() async {
     final lastCycle = state.getLastConfirmedCycle();
     final initialDate = lastCycle?.cycleStartDate ?? DateTime.now();
-    
+
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -365,7 +432,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Period start updated to ${_formatDate(pickedDate)}')),
+        SnackBar(
+          content: Text('Period start updated to ${_formatDate(pickedDate)}'),
+        ),
       );
     }
   }
@@ -374,12 +443,13 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Widget _bottomCard() {
     // Calculate cycle day based on state
     int cycleDay = 1;
-    
+
     if (state.bleedingStartDate != null) {
       final diff = selectedDay.difference(state.bleedingStartDate!).inDays;
-      final safeDiff = ((diff % state.getEffectiveCycleLength()) + 
-                        state.getEffectiveCycleLength()) % 
-                       state.getEffectiveCycleLength();
+      final safeDiff =
+          ((diff % state.getEffectiveCycleLength()) +
+              state.getEffectiveCycleLength()) %
+          state.getEffectiveCycleLength();
       cycleDay = safeDiff + 1;
     }
 
@@ -389,9 +459,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -403,9 +471,22 @@ class _TrackerScreenState extends State<TrackerScreen> {
           const CircleAvatar(
             backgroundColor: Colors.grey,
             child: Icon(Icons.close, color: Colors.white),
-          )
+          ),
         ],
       ),
     );
   }
+}
+
+/// Helper class to hold day cell colors
+class _DayColors {
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final Color textColor;
+
+  const _DayColors({
+    this.backgroundColor,
+    this.borderColor,
+    required this.textColor,
+  });
 }

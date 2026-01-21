@@ -72,7 +72,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         });
       }
     } catch (e) {
-      print('Error loading period data: $e');
+      // Error loading period data - use defaults
     }
   }
 

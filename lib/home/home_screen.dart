@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print('Error loading period data: $e');
+      // Error loading period data - use defaults
     }
   }
 

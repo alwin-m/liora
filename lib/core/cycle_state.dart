@@ -39,10 +39,10 @@ class CycleState {
     this.bleedingEndDate,
     this.averageCycleLength = 28,
     this.averageBleedingLength = 5,
-    this.cycleHistory = const [],
+    List<CycleHistoryEntry>? cycleHistory,
     this.defaultCycleLength = 28,
     this.defaultBleedingLength = 5,
-  });
+  }) : cycleHistory = cycleHistory ?? [];
 
   /// ==================== STATE MUTATIONS ====================
 

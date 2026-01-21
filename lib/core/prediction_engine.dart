@@ -41,12 +41,12 @@ class PredictionEngine {
     return nextStart.subtract(const Duration(days: 14));
   }
 
-  /// Calculate fertile window (5 days before ovulation)
+  /// Calculate fertile window (5 days before ovulation, including ovulation day)
   static DateRange getFertileWindow(CycleState state) {
     final ovulation = getOvulationDate(state);
     return DateRange(
       start: ovulation.subtract(const Duration(days: 5)),
-      end: ovulation.subtract(const Duration(days: 1)),
+      end: ovulation,
     );
   }
 

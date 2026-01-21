@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../home/cycle_algorithm.dart';
 import '../core/cycle_session.dart';
+import '../core/local_cycle_storage.dart';
+import 'period_input_sheet.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -65,7 +67,65 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _bottomCard(),
         ],
       ),
+
+      floatingActionButton: _periodInputFAB(),
     );
+  }
+
+  // 🩹 Floating action button for period tracking
+  Widget _periodInputFAB() {
+    return FloatingActionButton(
+      backgroundColor: Colors.pink.shade400,
+      onPressed: _showPeriodInputSheet,
+      child: const Icon(Icons.add, color: Colors.white, size: 28),
+    );
+  }
+
+  // 📱 Show iOS-style bottom sheet for period input
+  void _showPeriodInputSheet() async {
+    final today = DateTime.now();
+    final todayType = algo.getType(today);
+    final isPeriodActive = todayType == DayType.period;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      builder: (_) => PeriodInputSheet(
+        isPeriodActive: isPeriodActive,
+        onSaved: _handlePeriodSaved,
+      ),
+    );
+  }
+
+  // 💾 Handle saved period data
+  Future<void> _handlePeriodSaved(String type, DateTime date) async {
+    // Save to local storage
+    await LocalCycleStorage.savePeriodEvent(date: date, type: type);
+
+    // Refresh calendar
+    setState(() {
+      selectedDay = date;
+      focusedDay = date;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            type == 'start'
+                ? 'Period start recorded'
+                : 'Period end recorded',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // 🔄 Month / Year toggle
@@ -177,14 +237,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     Color? borderColor;
     Color textColor = Colors.black;
+    Color? backgroundColor;
 
+    // Use algorithm predictions for coloring
+    // (manual period marks are handled separately with FutureBuilder if needed)
     if (type == DayType.period) {
+      backgroundColor = const Color(0xFFFFE0E6); // Light red for period
       borderColor = Colors.pink;
       textColor = Colors.pink;
     } else if (type == DayType.fertile) {
+      backgroundColor = const Color(0xFFDFF6DD); // Light green for fertile
       borderColor = Colors.teal;
       textColor = Colors.teal;
     } else if (type == DayType.ovulation) {
+      backgroundColor = const Color(0xFFE8E0F8); // Light purple for ovulation
       borderColor = Colors.purple;
       textColor = Colors.purple;
     }
@@ -195,6 +261,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
+          color: backgroundColor,
           border: borderColor != null
               ? Border.all(color: borderColor, width: 2)
               : null,
@@ -202,7 +269,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
         child: Center(
           child: Text(
             "${day.day}",
-            style: TextStyle(color: textColor),
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.normal,
+            ),
           ),
         ),
       ),

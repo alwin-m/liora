@@ -42,6 +42,7 @@ dependencies:
   firebase_storage: ^13.0.5
   image_picker: ^1.0.0
   intl: ^0.20.0
+  shared_preferences: ^2.2.0
   
 
 dev_dependencies:

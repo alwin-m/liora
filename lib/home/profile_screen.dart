@@ -4,6 +4,7 @@ import 'package:lioraa/Screens/login_screen.dart'; // ✅ ADDED
 import 'package:lioraa/Screens/change_password_screen.dart'; // ✅ ADDED
 import 'package:lioraa/core/cycle_session.dart';
 import 'package:lioraa/home/cycle_algorithm.dart';
+import 'package:lioraa/core/local_cycle_storage.dart'; // ✅ NEW
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +16,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool cycleReminders = true;
   bool periodAlerts = true;
-  bool cartUpdates = false;
 
   late final CycleAlgorithm algo;
 
@@ -23,6 +23,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     algo = CycleSession.algorithm;
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final settings = await LocalCycleStorage.getNotificationSettings();
+    setState(() {
+      cycleReminders = settings['cycleReminder'] ?? true;
+      periodAlerts = settings['periodReminder'] ?? true;
+    });
+  }
+
+  Future<void> _saveNotificationSettings() async {
+    await LocalCycleStorage.saveNotificationSettings({
+      'cycleReminder': cycleReminders,
+      'periodReminder': periodAlerts,
+    });
   }
 
   void _openSettingsPopup() {
@@ -80,6 +96,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // 🔐 LOGOUT
   Future<void> _logout() async {
+    // Clear local cycle data for privacy
+    await LocalCycleStorage.clearAllData();
+    
     await FirebaseAuth.instance.signOut();
 
     Navigator.pushAndRemoveUntil(
@@ -222,19 +241,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Cycle reminders',
                       subtitle: 'Gentle nudges about your cycle phases',
                       value: cycleReminders,
-                      onChanged: (v) => setState(() => cycleReminders = v),
+                      onChanged: (v) {
+                        setState(() => cycleReminders = v);
+                        _saveNotificationSettings();
+                      },
                     ),
                     _ToggleRow(
-                      title: 'Upcoming period alerts',
+                      title: 'Period alerts',
                       subtitle: '2–3 days before your expected period',
                       value: periodAlerts,
-                      onChanged: (v) => setState(() => periodAlerts = v),
-                    ),
-                    _ToggleRow(
-                      title: 'Cart & order updates',
-                      subtitle: 'When items ship or arrive',
-                      value: cartUpdates,
-                      onChanged: (v) => setState(() => cartUpdates = v),
+                      onChanged: (v) {
+                        setState(() => periodAlerts = v);
+                        _saveNotificationSettings();
+                      },
                     ),
                   ],
                 ),

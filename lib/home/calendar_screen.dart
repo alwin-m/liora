@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart' show TableCalendar, HeaderStyle, CalendarBuilders, isSameDay;
-import '../services/cycle_data_service.dart';
-import 'cycle_algorithm.dart';
-import 'first_time_setup.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../home/cycle_algorithm.dart';
+import '../core/cycle_session.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -13,30 +12,26 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   bool isMonth = true;
-  late DateTime focusedDay;
-  late DateTime selectedDay;
-  late CycleDataService cycleService;
+
+  DateTime focusedDay = DateTime.now();
+  DateTime selectedDay = DateTime.now();
+
+  late CycleAlgorithm algo;
 
   final List<String> months = const [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
   ];
 
   @override
   void initState() {
     super.initState();
-    final today = DateTime.now();
-    focusedDay = DateTime(today.year, today.month);
-    selectedDay = today;
-    cycleService = CycleDataService();
-    _loadCycleData();
-  }
 
-  Future<void> _loadCycleData() async {
-    await cycleService.loadUserCycleData();
-    if (mounted) {
-      setState(() {});
-    }
+    // ✅ SAME ENGINE AS HOME
+    algo = CycleSession.algorithm;
+
+    selectedDay = DateTime.now();
+    focusedDay = DateTime.now();
   }
 
   @override
@@ -47,25 +42,16 @@ class _TrackerScreenState extends State<TrackerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-
-        // ✅ FIXED CLOSE BUTTON
-        /*leading: IconButton(
+        leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            );
           },
-        ),*/
-        leading: IconButton(
-  icon: const Icon(Icons.close, color: Colors.black),
-  onPressed: () {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/home',
-      (route) => false,
-    );
-  },
-),
-
+        ),
         centerTitle: true,
         title: _monthYearToggle(),
       ),
@@ -82,7 +68,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // 🔁 Month / Year toggle
+  // 🔄 Month / Year toggle
   Widget _monthYearToggle() {
     return Container(
       padding: const EdgeInsets.all(4),
@@ -124,17 +110,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // 📅 MONTH CALENDAR
+  // 📅 Month Calendar
   Widget _monthCalendar() {
     return TableCalendar(
       focusedDay: focusedDay,
       firstDay: DateTime.utc(2020),
       lastDay: DateTime.utc(2030),
       selectedDayPredicate: (d) => isSameDay(d, selectedDay),
-      onDaySelected: (selectedDate, focusedDate) {
+      onDaySelected: (s, f) {
         setState(() {
-          selectedDay = selectedDate;
-          focusedDay = focusedDate;
+          selectedDay = s;
+          focusedDay = f;
         });
       },
       calendarBuilders: CalendarBuilders(
@@ -149,7 +135,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // 🗓 YEAR CALENDAR
+  // 📆 Year View
   Widget _yearCalendar() {
     return Expanded(
       child: GridView.builder(
@@ -185,10 +171,23 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // 🟢 Normal / dotted day
+  // 🎨 Day Cell
   Widget _dayCell(DateTime day) {
-    final dayType = cycleService.getDayType(day);
-    final Color color = _getDayColor(dayType);
+    final DayType type = algo.getType(day);
+
+    Color? borderColor;
+    Color textColor = Colors.black;
+
+    if (type == DayType.period) {
+      borderColor = Colors.pink;
+      textColor = Colors.pink;
+    } else if (type == DayType.fertile) {
+      borderColor = Colors.teal;
+      textColor = Colors.teal;
+    } else if (type == DayType.ovulation) {
+      borderColor = Colors.purple;
+      textColor = Colors.purple;
+    }
 
     return Center(
       child: Container(
@@ -196,39 +195,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: dayType == DayType.period ? color : Colors.transparent,
-          border: dayType == DayType.fertile
-              ? Border.all(color: color, width: 2)
-              : dayType == DayType.ovulation
-                  ? Border.all(color: color, width: 2)
-                  : null,
+          border: borderColor != null
+              ? Border.all(color: borderColor, width: 2)
+              : null,
         ),
         child: Center(
           child: Text(
             "${day.day}",
-            style: TextStyle(
-              color: dayType == DayType.period ? Colors.white : Colors.black,
-            ),
+            style: TextStyle(color: textColor),
           ),
         ),
       ),
     );
   }
 
-  Color _getDayColor(DayType type) {
-    switch (type) {
-      case DayType.period:
-        return Colors.pink;
-      case DayType.fertile:
-        return Colors.teal;
-      case DayType.ovulation:
-        return Colors.purple;
-      case DayType.normal:
-        return Colors.grey;
-    }
-  }
-
-  // 🔘 TODAY
   Widget _todayCell(DateTime day) {
     return Center(
       child: Container(
@@ -248,7 +228,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // ✏ Edit button
+  // ✏️ EDIT PERIOD BUTTON (WORKING)
   Widget _editPeriodButton() {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -257,29 +237,51 @@ class _TrackerScreenState extends State<TrackerScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      onPressed: () {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => FirstTimeSetup(
-            onComplete: () {
-              // Reload data after edit
-              cycleService.loadUserCycleData();
-              setState(() {});
-              Navigator.pop(context);
-            },
-          ),
-        );
-      },
+      onPressed: _editLastPeriodDate,
       child: const Text("Edit period dates"),
     );
   }
 
-  // ⬇ Bottom card
+  // 🔥 EDIT LAST PERIOD DATE LOGIC
+  Future<void> _editLastPeriodDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: algo.lastPeriod,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (pickedDate == null) return;
+
+    setState(() {
+      // 🔄 Rebuild cycle engine safely
+      CycleSession.algorithm = CycleAlgorithm(
+        lastPeriod: DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+        ),
+        cycleLength: algo.cycleLength,
+        periodLength: algo.periodLength,
+      );
+
+      algo = CycleSession.algorithm;
+      selectedDay = pickedDate;
+      focusedDay = pickedDate;
+    });
+  }
+
+  // 📊 Bottom Info Card (Cycle Day)
   Widget _bottomCard() {
-    final currentCycleDay = cycleService.getCurrentCycleDay();
-    final dayName = _getDayName(selectedDay);
-    
+    final int diff =
+        selectedDay.difference(algo.lastPeriod).inDays;
+
+    final int safeDiff =
+        ((diff % algo.cycleLength) + algo.cycleLength) %
+            algo.cycleLength;
+
+    final int cycleDay = safeDiff + 1;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -294,29 +296,15 @@ class _TrackerScreenState extends State<TrackerScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "$dayName ${selectedDay.day} · Cycle day $currentCycleDay",
+            "${months[selectedDay.month - 1].substring(0, 3)} ${selectedDay.day} · Cycle day $cycleDay",
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedDay = DateTime.now();
-                focusedDay = DateTime.now();
-              });
-            },
-            child: const CircleAvatar(
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.close, color: Colors.white),
-            ),
+          const CircleAvatar(
+            backgroundColor: Colors.grey,
+            child: Icon(Icons.close, color: Colors.white),
           )
         ],
       ),
     );
-  }
-
-  String _getDayName(DateTime date) {
-    final index = date.weekday - 1;
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[index];
   }
 }

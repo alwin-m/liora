@@ -11,77 +11,65 @@ class CycleAlgorithm {
     required this.periodLength,
   });
 
-  /// Get day type for a specific date
-  /// Handles both past and future dates correctly
+  /// Cycle day calculation (BIOLOGICALLY CORRECT + SAFE)
+  int getCycleDay(DateTime date) {
+    final normalizedLast =
+        DateTime(lastPeriod.year, lastPeriod.month, lastPeriod.day);
+    final normalizedDate =
+        DateTime(date.year, date.month, date.day);
+
+    final diff = normalizedDate.difference(normalizedLast).inDays;
+
+    // ✅ FIX: Safe positive modulo (prevents negative cycle days)
+    final safeDiff =
+        ((diff % cycleLength) + cycleLength) % cycleLength;
+
+    return safeDiff + 1; // Day 1 = first day of period
+  }
+
   DayType getType(DateTime date) {
-    // Normalize the date to start of day (remove time component)
-    final normalizedDate = DateTime(date.year, date.month, date.day);
-    final normalizedLastPeriod = DateTime(
-      lastPeriod.year,
-      lastPeriod.month,
-      lastPeriod.day,
-    );
+    final cycleDay = getCycleDay(date);
 
-    // Calculate days since last period
-    final diff = normalizedDate.difference(normalizedLastPeriod).inDays;
-
-    // Handle past dates (before last period) - treat as normal
-    if (diff < 0) return DayType.normal;
-
-    // Get position in current/future cycle
-    final dayInCycle = diff % cycleLength;
-
-    // Period days: from day 0 to (periodLength - 1)
-    if (dayInCycle < periodLength) {
+    // 🩸 Period days: Day 1 → periodLength
+    if (cycleDay >= 1 && cycleDay <= periodLength) {
       return DayType.period;
     }
 
-    // Ovulation typically occurs around day 14 of a 28-day cycle
-    // For other cycle lengths, proportionally calculate ovulation day
-    final ovulationDay = (cycleLength * 0.5).round();
-    if (dayInCycle == ovulationDay) {
+    // 🥚 Ovulation ≈ 14 days before next period
+    final ovulationDay = cycleLength - 14;
+
+    if (cycleDay == ovulationDay) {
       return DayType.ovulation;
     }
 
-    // Fertile window: typically 5 days before ovulation to day after ovulation
-    final fertileStart = (ovulationDay - 5).clamp(0, cycleLength);
-    final fertileEnd = (ovulationDay + 1).clamp(0, cycleLength);
-
-    if (dayInCycle >= fertileStart && dayInCycle <= fertileEnd) {
+    // 🌱 Fertile window = 5 days before ovulation (EXCLUDING ovulation day)
+    if (cycleDay >= ovulationDay - 5 &&
+        cycleDay < ovulationDay) {
       return DayType.fertile;
     }
 
     return DayType.normal;
   }
 
-  /// Get next period start date
-  DateTime getNextPeriodStart() {
+  /// Next period prediction (MATHEMATICALLY CORRECT)
+  DateTime getNextPeriodDate() {
     final today = DateTime.now();
-    final todayNormalized = DateTime(today.year, today.month, today.day);
-    final lastPeriodNormalized = DateTime(
-      lastPeriod.year,
-      lastPeriod.month,
-      lastPeriod.day,
+    final normalizedToday =
+        DateTime(today.year, today.month, today.day);
+
+    final normalizedLast =
+        DateTime(lastPeriod.year, lastPeriod.month, lastPeriod.day);
+
+    final diff =
+        normalizedToday.difference(normalizedLast).inDays;
+
+    // ✅ FIX: If today is before or on lastPeriod, next = lastPeriod
+    if (diff <= 0) return normalizedLast;
+
+    final cyclesPassed = diff ~/ cycleLength + 1;
+
+    return normalizedLast.add(
+      Duration(days: cyclesPassed * cycleLength),
     );
-
-    final daysSinceLast = todayNormalized.difference(lastPeriodNormalized).inDays;
-    final daysIntoCurrentCycle = daysSinceLast % cycleLength;
-    final daysUntilNextPeriod = cycleLength - daysIntoCurrentCycle;
-
-    return todayNormalized.add(Duration(days: daysUntilNextPeriod));
-  }
-
-  /// Get current cycle day (1-indexed)
-  int getCurrentCycleDay() {
-    final today = DateTime.now();
-    final todayNormalized = DateTime(today.year, today.month, today.day);
-    final lastPeriodNormalized = DateTime(
-      lastPeriod.year,
-      lastPeriod.month,
-      lastPeriod.day,
-    );
-
-    final daysSinceLast = todayNormalized.difference(lastPeriodNormalized).inDays;
-    return (daysSinceLast % cycleLength) + 1;
   }
 }

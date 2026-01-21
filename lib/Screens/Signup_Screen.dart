@@ -1,77 +1,8 @@
-/*
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-// 🔥 FIREBASE IMPORTS (UNCOMMENT)
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-
-class SignupScreen extends StatelessWidget {
-  const SignupScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFBEAFF),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Text('Liora',
-                  style: GoogleFonts.playfairDisplay(
-                      fontSize: 36, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 40),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24)),
-                child: Column(
-                  children: [
-                    TextField(
-                        decoration:
-                            const InputDecoration(labelText: 'Name')),
-                    const SizedBox(height: 16),
-                    TextField(
-                        decoration:
-                            const InputDecoration(labelText: 'Email')),
-                    const SizedBox(height: 16),
-                    TextField(
-                        obscureText: true,
-                        decoration:
-                            const InputDecoration(labelText: 'Password')),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () {
-                        // 🔥 TODO:
-                        // FirebaseAuth.instance.createUserWithEmailAndPassword()
-                        // Save user to Firestore with profileCompleted = false
-                        // Navigate to Onboarding
-                      },
-                      child: const Text('Create Account'),
-                    )
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/login'),
-                child: const Text("Already have an account? Login"),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-*/
-/*
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/theme.dart';
+import '../core/components.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -81,512 +12,379 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  Future<void> signup() async {
-    final auth = FirebaseAuth.instance;
-    final firestore = FirebaseFirestore.instance;
-
-    UserCredential userCred =
-        await auth.createUserWithEmailAndPassword(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
-    );
-
-    await firestore.collection('users').doc(userCred.user!.uid).set({
-      'name': nameController.text.trim(),
-      'email': emailController.text.trim(),
-      'createdAt': Timestamp.now(),
-    });
-
-    Navigator.pushReplacementNamed(context, '/home');
-  }
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _agreedToTerms = false;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
-            const SizedBox(height: 24),
-            ElevatedButton(onPressed: signup, child: const Text('Create Account')),
-          ],
-        ),
-      ),
-    );
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
-}
-*/
-/*
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lioraa/onboarding/onboarding_screen.dart';
-import 'package:lioraa/core/cycle_session.dart';
-import 'package:lioraa/home/cycle_algorithm.dart';
-import 'package:lioraa/Screens/Login_Screen.dart'; // ✅ ADDED
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
-
-  @override
-  State<SignupScreen> createState() => _SignupScreenState();
-}
-
-class _SignupScreenState extends State<SignupScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> signup() async {
-    if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
-      );
-      return;
-    }
-
-    try {
-      setState(() => isLoading = true);
-
-      UserCredential userCred =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCred.user!.uid)
-          .set({
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'createdAt': Timestamp.now(),
-      });
-
-      // 🔥 IMPORTANT FIX: initialize global cycle engine AFTER Firestore completes
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime.now().subtract(const Duration(days: 14)),
-        cycleLength: 28,
-        periodLength: 5,
-      );
-
-      Navigator.pushReplacement(
+  Future<void> _handleSignup() async {
+    // Validation
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      showCalmSnackBar(
         context,
-        MaterialPageRoute(
-          builder: (_) => const OnboardingQuestionsScreen(),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 247, 211, 228),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : signup,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF4A6B8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                'Create Account',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    // ✅ ADDED LOGIN LINK (NO STRUCTURE CHANGED)
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Already have an account? ",
-                          style: GoogleFonts.poppins(fontSize: 13),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            "Login",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFE67598),
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-*/
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lioraa/onboarding/onboarding_screen.dart';
-import 'package:lioraa/core/cycle_session.dart';
-import 'package:lioraa/home/cycle_algorithm.dart';
-import 'package:lioraa/Screens/Login_Screen.dart'; // ✅ ADDED
-
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
-
-  @override
-  State<SignupScreen> createState() => _SignupScreenState();
-}
-
-class _SignupScreenState extends State<SignupScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> signup() async {
-    if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
+        message: 'Please fill in all fields',
+        icon: Icons.info_outline,
       );
       return;
     }
 
-    try {
-      setState(() => isLoading = true);
+    if (_passwordController.text != _confirmPasswordController.text) {
+      showCalmSnackBar(
+        context,
+        message: 'Passwords do not match',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
 
-      UserCredential userCred =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+    if (_passwordController.text.length < 6) {
+      showCalmSnackBar(
+        context,
+        message: 'Password must be at least 6 characters',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+
+    if (!_agreedToTerms) {
+      showCalmSnackBar(
+        context,
+        message: 'Please agree to terms and conditions',
+        icon: Icons.info_outline,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Create Firebase Auth user
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCred.user!.uid)
-          .set({
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'createdAt': Timestamp.now(),
-
-        // 🔥 REQUIRED FOR ROLE-BASED FLOW
+      // Store user in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
         'role': 'user',
-
-        // 🔥 REQUIRED FOR ONBOARDING GATE
         'profileCompleted': false,
+        'createdAt': DateTime.now(),
       });
 
-      // 🔥 IMPORTANT FIX: initialize global cycle engine AFTER Firestore completes
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime.now().subtract(const Duration(days: 14)),
-        cycleLength: 28,
-        periodLength: 5,
-      );
+      if (!mounted) return;
 
-      Navigator.pushReplacement(
+      // Navigate to onboarding
+      Navigator.pushReplacementNamed(context, '/onboarding');
+    } on FirebaseAuthException catch (e) {
+      showCalmSnackBar(
         context,
-        MaterialPageRoute(
-          builder: (_) => const OnboardingQuestionsScreen(),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        message: e.message ?? 'Signup failed',
+        icon: Icons.error_outline,
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 247, 211, 228),
-      body: Center(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: AppTheme.xl),
 
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                // Header
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          borderRadius: AppTheme.roundedLg,
+                          boxShadow: AppTheme.shadowSm,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : signup,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF4A6B8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                        child: Center(
+                          child: Icon(
+                            Icons.favorite,
+                            size: 40,
+                            color: AppTheme.primary,
                           ),
                         ),
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                'Create Account',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Already have an account? ",
-                          style: GoogleFonts.poppins(fontSize: 13),
+                      const SizedBox(height: AppTheme.lg),
+                      Text(
+                        'Create Account',
+                        style: AppTheme.displayMedium,
+                      ),
+                      const SizedBox(height: AppTheme.md),
+                      Text(
+                        'Start your wellness journey with Liora',
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            "Login",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFE67598),
-                              decoration: TextDecoration.underline,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.xl),
+
+                // Name field
+                MinimalTextField(
+                  label: 'Full Name',
+                  hintText: 'John Doe',
+                  controller: _nameController,
+                  prefixIcon: Icons.person_outline,
+                ),
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Email field
+                MinimalTextField(
+                  label: 'Email',
+                  hintText: 'your@email.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.mail_outline,
+                ),
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Password field
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Password',
+                      style: AppTheme.labelMedium,
+                    ),
+                    const SizedBox(height: AppTheme.md),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceContainer,
+                        borderRadius: AppTheme.roundedMd,
+                        boxShadow: AppTheme.shadowSm,
+                      ),
+                      child: TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: AppTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          hintStyle: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.textTertiary,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: AppTheme.primary,
+                          ),
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                            child: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppTheme.textSecondary,
                             ),
                           ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.lg,
+                            vertical: AppTheme.md,
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Confirm password field
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Confirm Password',
+                      style: AppTheme.labelMedium,
+                    ),
+                    const SizedBox(height: AppTheme.md),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceContainer,
+                        borderRadius: AppTheme.roundedMd,
+                        boxShadow: AppTheme.shadowSm,
+                      ),
+                      child: TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        style: AppTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          hintStyle: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.textTertiary,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: AppTheme.primary,
+                          ),
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                            child: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.lg,
+                            vertical: AppTheme.md,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Terms checkbox
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _agreedToTerms = !_agreedToTerms;
+                        });
+                      },
+                      child: Container(
+                        height: 24,
+                        width: 24,
+                        decoration: BoxDecoration(
+                          color: _agreedToTerms
+                              ? AppTheme.primary
+                              : AppTheme.surfaceContainer,
+                          border: Border.all(
+                            color: _agreedToTerms
+                                ? AppTheme.primary
+                                : AppTheme.surfaceContainerHigh,
+                            width: 1.5,
+                          ),
+                          borderRadius: AppTheme.roundedSm,
+                        ),
+                        child: _agreedToTerms
+                            ? const Icon(
+                                Icons.check,
+                                size: 16,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.md),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'I agree to ',
+                              style: AppTheme.bodySmall,
+                            ),
+                            TextSpan(
+                              text: 'Terms & Conditions',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: AppTheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppTheme.xxl),
+
+                // Sign up button
+                SizedBox(
+                  width: double.infinity,
+                  child: MinimalButton(
+                    label: 'Create Account',
+                    onPressed: _handleSignup,
+                    isLoading: _isLoading,
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Login link
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an account? ',
+                        style: AppTheme.bodyMedium,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                        child: Text(
+                          'Sign In',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.xxl),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:lioraa/home/calendar_screen.dart';
-import 'package:lioraa/home/profile_screen.dart';
-import 'package:lioraa/home/shop_screen.dart';
-import 'package:table_calendar/table_calendar.dart';
-
-import '../core/cycle_session.dart';
-import 'cycle_algorithm.dart';
-
+import '../core/theme.dart';
+import '../core/components.dart';
+import 'calendar_screen.dart';
+import 'profile_screen.dart';
+import 'shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,862 +15,566 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int index = 0;
+  int _currentIndex = 0;
 
-  DateTime focusedDay = DateTime.now();
-  DateTime selectedDay = DateTime.now();
-
-  CycleAlgorithm get algo => CycleSession.algorithm;
+  late List<Widget> _pages;
 
   @override
-  Widget build(BuildContext context) {
-    final pages = [
-      _homeUI(),
+  void initState() {
+    super.initState();
+    _pages = [
+      const _HomeTab(),
       const TrackerScreen(),
       const ShopScreen(),
       const ProfileScreen(),
     ];
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF6F9),
-      body: pages[index],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) {
-          setState(() {
-            index = i;
-            if (i == 0) {
-              focusedDay = DateTime.now();
-              selectedDay = DateTime.now();
-            }
-          });
-        },
-        selectedItemColor: Colors.pinkAccent,
-        unselectedItemColor: Colors.grey.shade400,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Track"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Shop"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
+      backgroundColor: AppTheme.background,
+      body: _pages[_currentIndex],
+      bottomNavigationBar: _buildBottomNavigation(),
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: AppTheme.surfaceContainerHigh,
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.lg,
+            vertical: AppTheme.md,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _NavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_filled,
+                label: 'Home',
+                isActive: _currentIndex == 0,
+                onTap: () => _updateIndex(0),
+              ),
+              _NavItem(
+                icon: Icons.calendar_month_outlined,
+                activeIcon: Icons.calendar_month,
+                label: 'Tracker',
+                isActive: _currentIndex == 1,
+                onTap: () => _updateIndex(1),
+              ),
+              _NavItem(
+                icon: Icons.shopping_bag_outlined,
+                activeIcon: Icons.shopping_bag,
+                label: 'Shop',
+                isActive: _currentIndex == 2,
+                onTap: () => _updateIndex(2),
+              ),
+              _NavItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                label: 'Profile',
+                isActive: _currentIndex == 3,
+                onTap: () => _updateIndex(3),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // ================= HOME UI =================
+  void _updateIndex(int newIndex) {
+    setState(() {
+      _currentIndex = newIndex;
+    });
+  }
+}
 
-  Widget _homeUI() {
+class _NavItem extends StatefulWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: AppTheme.durationSm,
+      vsync: this,
+    );
+    if (widget.isActive) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_NavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _controller.forward();
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ScaleTransition(
+            scale: Tween<double>(begin: 1, end: 1.15)
+                .animate(_controller),
+            child: Icon(
+              widget.isActive ? widget.activeIcon : widget.icon,
+              color: widget.isActive
+                  ? AppTheme.primary
+                  : AppTheme.textSecondary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: AppTheme.xs),
+          Text(
+            widget.label,
+            style: AppTheme.labelMedium.copyWith(
+              color: widget.isActive
+                  ? AppTheme.primary
+                  : AppTheme.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HOME TAB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class _HomeTab extends StatefulWidget {
+  const _HomeTab();
+
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  late Stream<DocumentSnapshot> _userStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _userStream =
+          FirebaseFirestore.instance.collection('users').doc(uid).snapshots();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _title(),
-            const SizedBox(height: 20),
-            _calendarCard(),
-            const SizedBox(height: 24),
-            _nextPeriodCard(),
-            const SizedBox(height: 24),
-            _recommendedTitle(),
-            const SizedBox(height: 12),
-            _recommendedProducts(),
+            // Header with greeting
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.lg),
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: _userStream,
+                builder: (context, snapshot) {
+                  String name = 'Welcome';
+                  if (snapshot.hasData && snapshot.data != null) {
+                    name =
+                        snapshot.data!['name'] ?? 'Welcome';
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hello, $name 👋',
+                        style: AppTheme.displayMedium,
+                      ),
+                      const SizedBox(height: AppTheme.sm),
+                      Text(
+                        'How are you feeling today?',
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.lg),
+              child: Column(
+                children: [
+                  // Cycle status card
+                  _CycleStatusCard(),
+                  const SizedBox(height: AppTheme.lg),
+
+                  // Quick actions
+                  _QuickActionsGrid(),
+                  const SizedBox(height: AppTheme.lg),
+
+                  // Insights section
+                  _InsightsSection(),
+                  const SizedBox(height: AppTheme.xxl),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _title() {
-    return Text(
-      "LIORA",
-      style: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: Colors.pink.shade400,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
+class _CycleStatusCard extends StatelessWidget {
+  const _CycleStatusCard();
 
-  // ================= CALENDAR =================
-
-  Widget _calendarCard() {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: TableCalendar(
-          focusedDay: focusedDay,
-          firstDay: DateTime.utc(2020),
-          lastDay: DateTime.utc(2030),
-          selectedDayPredicate: (d) => isSameDay(d, selectedDay),
-          onDaySelected: (s, f) {
-            setState(() {
-              selectedDay = s;
-              focusedDay = f;
-            });
-          },
-          calendarBuilders: CalendarBuilders(
-            defaultBuilder: (_, d, __) => _dayBox(d, algo.getType(d)),
-            todayBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), today: true),
-            selectedBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), selected: true),
-          ),
-          headerStyle: HeaderStyle(
-            titleCentered: true,
-            formatButtonVisible: false,
-            titleTextStyle: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.pink.shade300,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dayBox(
-    DateTime day,
-    DayType type, {
-    bool selected = false,
-    bool today = false,
-  }) {
-    Color color = Colors.transparent;
-
-    if (type == DayType.period) color = const Color(0xFFFFE0E6);
-    if (type == DayType.fertile) color = const Color(0xFFDFF6DD);
-    if (type == DayType.ovulation) color = const Color(0xFFE8E0F8);
-
-    return Container(
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-        border: selected
-            ? Border.all(color: Colors.pinkAccent, width: 2)
-            : today
-                ? Border.all(color: Colors.deepOrangeAccent, width: 2)
-                : null,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        "${day.day}",
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  // ================= NEXT PERIOD =================
-
-  Widget _nextPeriodCard() {
-    final nextPeriod = algo.getNextPeriodDate();
-    final endPeriod =
-        nextPeriod.add(Duration(days: algo.periodLength - 1));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.pink.shade200, Colors.purple.shade100],
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return SoftContainer(
+      padding: const EdgeInsets.all(AppTheme.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Your Next Period",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
           Text(
-            "${nextPeriod.day} ${_month(nextPeriod.month)} - "
-            "${endPeriod.day} ${_month(endPeriod.month)}",
-            style: const TextStyle(color: Colors.white),
+            'Your Cycle',
+            style: AppTheme.headlineSmall,
           ),
-        ],
-      ),
-    );
-  }
-
-  // ================= RECOMMENDED =================
-
-  Widget _recommendedTitle() {
-    return Text(
-      "Recommended for Your Upcoming Period",
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
-        color: Colors.grey.shade700,
-      ),
-    );
-  }
-
-  Widget _recommendedProducts() {
-    return SizedBox(
-      height: 170,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .where('trending', isEqualTo: true)
-            .limit(5)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No products available',
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
-
-          final products = snapshot.data!.docs;
-
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: products.length,
-            itemBuilder: (_, i) {
-              final productData =
-                  products[i].data() as Map<String, dynamic>;
-              return GestureDetector(
-                onTap: () => _showProductPopup(
-                  productId: products[i].id,
-                  productData: productData,
+          const SizedBox(height: AppTheme.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _CycleInfo(
+                  label: 'Current Phase',
+                  value: 'Menstrual',
+                  icon: Icons.circle,
+                  color: AppTheme.error,
                 ),
-                child: _productCard(productData),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _productCard(Map<String, dynamic> product) {
-    return Container(
-      width: 130,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
+              ),
+              const SizedBox(width: AppTheme.lg),
+              Expanded(
+                child: _CycleInfo(
+                  label: 'Day in Cycle',
+                  value: '3 / 28',
+                  icon: Icons.calendar_today_outlined,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+          const SizedBox(height: AppTheme.lg),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              product['image'] ??
-                  'https://via.placeholder.com/100x100?text=Product',
-              height: 50,
-              width: 50,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 50,
-                width: 50,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.image_not_supported),
+            borderRadius: AppTheme.roundedSm,
+            child: LinearProgressIndicator(
+              value: 3 / 28,
+              minHeight: 6,
+              backgroundColor: AppTheme.surfaceContainerHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppTheme.primary,
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            product['name'] ?? 'Product',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "₹${product['price'] ?? 0}",
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.pinkAccent,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  /// =====================
-  /// PRODUCT POPUP (FROM SHOP)
-  /// =====================
-  void _showProductPopup({
-    required String productId,
-    required Map<String, dynamic> productData,
-  }) {
-    final List<String> details =
-        List<String>.from(productData['details'] ?? []);
-    final String name = productData['name'] ?? 'Product';
-    final int price = (productData['price'] ?? 0).toInt();
-    final String image = productData['image'] ??
-        'https://via.placeholder.com/300x200?text=Product';
+class _CycleInfo extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
 
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
+  const _CycleInfo({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: AppTheme.sm),
+            Text(label, style: AppTheme.bodySmall),
+          ],
+        ),
+        const SizedBox(height: AppTheme.sm),
+        Text(
+          value,
+          style: AppTheme.headlineSmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionsGrid extends StatelessWidget {
+  const _QuickActionsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: AppTheme.headlineSmall,
+        ),
+        const SizedBox(height: AppTheme.md),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.favorite_outline,
+                label: 'Log Symptoms',
+                onTap: () {
+                  showCalmSnackBar(
+                    context,
+                    message: 'Symptom logging coming soon',
+                  );
+                },
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    image,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 200,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.image_not_supported),
-                    ),
-                  ),
-                ),
+            ),
+            const SizedBox(width: AppTheme.md),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.mood_outlined,
+                label: 'Log Mood',
+                onTap: () {
+                  showCalmSnackBar(
+                    context,
+                    message: 'Mood tracking coming soon',
+                  );
+                },
               ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '₹$price',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTheme.md),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.local_fire_department_outlined,
+                label: 'Workouts',
+                onTap: () {
+                  showCalmSnackBar(
+                    context,
+                    message: 'Workout tracking coming soon',
+                  );
+                },
               ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'About this product',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...details.map(
-                      (detail) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('• ', style: TextStyle(fontSize: 16)),
-                            Expanded(
-                              child: Text(
-                                detail,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: AppTheme.md),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.lightbulb_outline,
+                label: 'Insights',
+                onTap: () {
+                  showCalmSnackBar(
+                    context,
+                    message: 'Personalized insights coming soon',
+                  );
+                },
               ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Colors.black),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('$name added to cart'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Add to Cart',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _showDeliveryPopup(
-                            productId: productId,
-                            productName: name,
-                            price: price,
-                          );
-                        },
-                        child: const Text(
-                          'Buy Now',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SoftContainer(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.md,
+          vertical: AppTheme.lg,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: AppTheme.primary,
+            ),
+            const SizedBox(height: AppTheme.md),
+            Text(
+              label,
+              style: AppTheme.labelMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  /// =====================
-  /// DELIVERY POPUP (FROM SHOP)
-  /// =====================
-  void _showDeliveryPopup({
-    required String productId,
-    required String productName,
-    required int price,
-  }) {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    final phoneController = TextEditingController();
+class _InsightsSection extends StatelessWidget {
+  const _InsightsSection();
 
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: SingleChildScrollView(
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Daily Insights',
+          style: AppTheme.headlineSmall,
+        ),
+        const SizedBox(height: AppTheme.md),
+        SoftContainer(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Delivery Details',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Where should we deliver your order?',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
+              _InsightItem(
+                icon: Icons.energy_savings_leaf_outlined,
+                title: 'Energy Level',
+                description: 'Stay active during your follicular phase',
               ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    _buildTextField(
-                      controller: nameController,
-                      label: 'Full Name',
-                      icon: Icons.person_outline,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: addressController,
-                      label: 'Delivery Address',
-                      icon: Icons.location_on_outlined,
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: phoneController,
-                      label: 'Phone Number',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                  ],
-                ),
+              Divider(
+                color: AppTheme.surfaceContainerHigh,
+                height: AppTheme.lg * 2,
               ),
-              const SizedBox(height: 20),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24.0),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Payment Method',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: const [
-                        Icon(Icons.local_shipping_outlined,
-                            size: 20, color: Colors.black87),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Pay on Delivery - No advance payment needed',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              _InsightItem(
+                icon: Icons.restaurant_outlined,
+                title: 'Nutrition Tip',
+                description: 'Increase iron intake during menstruation',
               ),
-              const SizedBox(height: 24),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24.0),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Order Summary',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(productName),
-                        Text(
-                          '₹$price',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Amount',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          '₹$price',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              Divider(
+                color: AppTheme.surfaceContainerHigh,
+                height: AppTheme.lg * 2,
               ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      if (nameController.text.isEmpty ||
-                          addressController.text.isEmpty ||
-                          phoneController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please fill all fields'),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
-                        return;
-                      }
-                      _confirmOrder(
-                        productId: productId,
-                        productName: productName,
-                        price: price,
-                        address: addressController.text,
-                      );
-                    },
-                    child: const Text(
-                      'Confirm & Pay on Delivery',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
+              _InsightItem(
+                icon: Icons.water_outlined,
+                title: 'Wellness',
+                description: 'Drink plenty of water and stay hydrated',
               ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
+}
 
-  /// =====================
-  /// CONFIRM ORDER
-  /// =====================
-  Future<void> _confirmOrder({
-    required String productId,
-    required String productName,
-    required int price,
-    required String address,
-  }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login first')),
-      );
-      return;
-    }
+class _InsightItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
 
-    try {
-      final productRef =
-          FirebaseFirestore.instance.collection('products').doc(productId);
+  const _InsightItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
 
-      await FirebaseFirestore.instance.runTransaction((txn) async {
-        final snap = await txn.get(productRef);
-        final stock = (snap['stock'] ?? 0).toInt();
-
-        if (stock <= 0) {
-          throw Exception('Out of stock');
-        }
-
-        txn.update(productRef, {'stock': stock - 1});
-
-        final orderRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('orders')
-            .doc();
-
-        txn.set(orderRef, {
-          'orderId': orderRef.id,
-          'productId': productId,
-          'productName': productName,
-          'price': price,
-          'status': 'Order Placed',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      });
-
-      if (!mounted) return;
-
-      Navigator.pop(context);
-      _showOrderSuccess(productName, address);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-  }
-
-  /// =====================
-  /// ORDER SUCCESS
-  /// =====================
-  void _showOrderSuccess(String productName, String address) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 48,
+          width: 48,
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withOpacity(0.1),
+            borderRadius: AppTheme.roundedMd,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: AppTheme.primary,
+              size: 24,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppTheme.lg),
+        Expanded(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check,
-                    color: Colors.green.shade700, size: 32),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Order Confirmed!',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
               Text(
-                '$productName will be delivered to:',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                title,
+                style: AppTheme.labelLarge,
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  address,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(color: Colors.white),
-                  ),
+              const SizedBox(height: AppTheme.xs),
+              Text(
+                description,
+                style: AppTheme.bodySmall.copyWith(
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: Colors.grey.shade600),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.black, width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-      ),
-    );
-  }
-
-  String _month(int m) {
-    const months = [
-      "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-    return months[m];
   }
 }

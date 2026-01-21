@@ -1,7 +1,8 @@
-/*import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:lioraa/onboarding/onboarding_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/theme.dart';
+import '../core/components.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,783 +12,280 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
-  bool isLoading = false;
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-  Future<void> login() async {
-    try {
-      setState(() => isLoading = true);
-
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      // 🔥 CRITICAL FIX (UNCHANGED)
-      Navigator.pushReplacement(
+  Future<void> _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      showCalmSnackBar(
         context,
-        MaterialPageRoute(
-          builder: (_) => const OnboardingQuestionsScreen(),
-        ),
+        message: 'Please fill in all fields',
+        icon: Icons.info_outline,
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      setState(() => isLoading = false);
+      return;
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
+    setState(() => _isLoading = true);
 
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Forgot your password?',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
-        ),
-      ),
-    );
-  }
-}
-*/
-/*
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> login() async {
     try {
-      setState(() => isLoading = true);
-
-      // 1️⃣ Firebase Authentication
-      UserCredential credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+      // Authenticate user
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      final uid = credential.user!.uid;
-
-      // 2️⃣ Fetch user document from Firestore
+      // Fetch user role and profile status
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(uid)
+          .doc(credential.user!.uid)
           .get();
 
-      final role = userDoc['role'];
+      final role = userDoc['role'] ?? 'user';
+      final profileCompleted = userDoc['profileCompleted'] ?? false;
 
-      // 3️⃣ Role-based navigation
+      if (!mounted) return;
+
+      // Role-based navigation
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
+      } else if (profileCompleted) {
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
-        final profileCompleted =
-            userDoc.data()!.containsKey('profileCompleted')
-                ? userDoc['profileCompleted']
-                : false;
-
-        if (profileCompleted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          Navigator.pushReplacementNamed(context, '/onboarding');
-        }
+        Navigator.pushReplacementNamed(context, '/onboarding');
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+    } on FirebaseAuthException catch (e) {
+      showCalmSnackBar(
+        context,
+        message: e.message ?? 'Login failed',
+        icon: Icons.error_outline,
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: AppTheme.xxl),
 
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                // Header
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          borderRadius: AppTheme.roundedLg,
+                          boxShadow: AppTheme.shadowSm,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.favorite,
+                            size: 40,
+                            color: AppTheme.primary,
                           ),
                         ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Forgot your password?',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                      const SizedBox(height: AppTheme.lg),
+                      Text(
+                        'Welcome Back',
+                        style: AppTheme.displayMedium,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
+                      const SizedBox(height: AppTheme.md),
+                      Text(
+                        'Sign in to continue your wellness journey',
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
-        ),
-      ),
-    );
-  }
-}
-*/
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+                const SizedBox(height: AppTheme.xxl),
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> login() async {
-    try {
-      setState(() => isLoading = true);
-
-      // 1️⃣ Firebase Authentication
-      UserCredential credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      final uid = credential.user!.uid;
-
-      // 2️⃣ Fetch user document from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
-
-      final role = userDoc['role'];
-
-      // 3️⃣ Role-based navigation
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else {
-        final profileCompleted =
-            userDoc.data()!.containsKey('profileCompleted')
-                ? userDoc['profileCompleted']
-                : false;
-
-        if (profileCompleted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          Navigator.pushReplacementNamed(context, '/onboarding');
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  // 🔐 PASSWORD RESET DIALOG
-  void _showResetPasswordDialog() {
-    final resetEmailController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text('Reset Password'),
-        content: TextField(
-          controller: resetEmailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            hintText: 'Enter your email',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await FirebaseAuth.instance.sendPasswordResetEmail(
-                  email: resetEmailController.text.trim(),
-                );
-
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Password reset email sent. Please check your inbox.',
-                    ),
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(e.toString())),
-                );
-              }
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                // Email field
+                MinimalTextField(
+                  label: 'Email',
+                  hintText: 'your@email.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.mail_outline,
                 ),
-              ),
 
-              const SizedBox(height: 6),
+                const SizedBox(height: AppTheme.lg),
 
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
+                // Password field with toggle
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                      'Password',
+                      style: AppTheme.labelMedium,
+                    ),
+                    const SizedBox(height: AppTheme.md),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceContainer,
+                        borderRadius: AppTheme.roundedMd,
+                        boxShadow: AppTheme.shadowSm,
                       ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      child: TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: AppTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          hintStyle: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.textTertiary,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: AppTheme.primary,
+                          ),
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                            child: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.lg,
+                            vertical: AppTheme.md,
                           ),
                         ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
                       ),
                     ),
+                  ],
+                ),
 
-                    const SizedBox(height: 16),
+                const SizedBox(height: AppTheme.lg),
 
-                    // 🔥 WORKING FORGOT PASSWORD
-                    GestureDetector(
-                      onTap: _showResetPasswordDialog,
+                // Forgot password link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {
+                      // TODO: Implement forgot password
+                      showCalmSnackBar(
+                        context,
+                        message: 'Password reset coming soon',
+                        icon: Icons.hourglass_empty_outlined,
+                      );
+                    },
+                    child: Text(
+                      'Forgot password?',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: AppTheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.xxl),
+
+                // Login button
+                SizedBox(
+                  width: double.infinity,
+                  child: MinimalButton(
+                    label: 'Sign In',
+                    onPressed: _handleLogin,
+                    isLoading: _isLoading,
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.lg),
+
+                // Divider
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: AppTheme.surfaceContainerHigh,
+                        height: 1,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.md,
+                      ),
                       child: Text(
-                        'Forgot your password?',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: const Color(0xFFE67598),
-                          decoration: TextDecoration.underline,
+                        'New to Liora?',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textTertiary,
                         ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: AppTheme.surfaceContainerHigh,
+                        height: 1,
                       ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 28),
+                const SizedBox(height: AppTheme.lg),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
+                // Sign up link
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Don\'t have an account? ',
+                        style: AppTheme.bodyMedium,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacementNamed(context, '/signup');
+                        },
+                        child: Text(
+                          'Create one',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
+                const SizedBox(height: AppTheme.xxl),
+              ],
+            ),
+          ),
         ),
       ),
     );

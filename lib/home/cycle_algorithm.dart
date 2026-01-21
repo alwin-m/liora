@@ -4,17 +4,26 @@ class CycleAlgorithm {
   final DateTime lastPeriod;
   final int cycleLength;
   final int periodLength;
+  
+  // Real period data from LocalCycleStorage
+  DateTime? recentPeriodStart;
+  DateTime? recentPeriodEnd;
 
   CycleAlgorithm({
     required this.lastPeriod,
     required this.cycleLength,
     required this.periodLength,
+    this.recentPeriodStart,
+    this.recentPeriodEnd,
   });
 
-  /// Cycle day calculation (BIOLOGICALLY CORRECT + SAFE)
+  /// Cycle day calculation - uses RECENT period data if available
   int getCycleDay(DateTime date) {
+    // Use recent period start if available, otherwise use algorithm's lastPeriod
+    final cycleBase = recentPeriodStart ?? lastPeriod;
+    
     final normalizedLast =
-        DateTime(lastPeriod.year, lastPeriod.month, lastPeriod.day);
+        DateTime(cycleBase.year, cycleBase.month, cycleBase.day);
     final normalizedDate =
         DateTime(date.year, date.month, date.day);
 
@@ -28,6 +37,34 @@ class CycleAlgorithm {
   }
 
   DayType getType(DateTime date) {
+    final normalizedDate =
+        DateTime(date.year, date.month, date.day);
+
+    // ✅ NEW: Check if date is within marked period (stored start → end)
+    if (recentPeriodStart != null) {
+      final normalizedStart =
+          DateTime(recentPeriodStart!.year, recentPeriodStart!.month, recentPeriodStart!.day);
+      
+      // If period end is marked, check range: start → end
+      if (recentPeriodEnd != null) {
+        final normalizedEnd =
+            DateTime(recentPeriodEnd!.year, recentPeriodEnd!.month, recentPeriodEnd!.day);
+        
+        if (normalizedDate.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
+            normalizedDate.isBefore(normalizedEnd.add(const Duration(days: 1)))) {
+          return DayType.period;
+        }
+      } else {
+        // Period start marked but not end → assume ongoing period for periodLength days
+        final periodEndEstimate = normalizedStart.add(Duration(days: periodLength - 1));
+        if (normalizedDate.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
+            normalizedDate.isBefore(periodEndEstimate.add(const Duration(days: 1)))) {
+          return DayType.period;
+        }
+      }
+    }
+
+    // Fall back to algorithm predictions
     final cycleDay = getCycleDay(date);
 
     // 🩸 Period days: Day 1 → periodLength

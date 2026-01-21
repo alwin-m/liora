@@ -34,6 +34,46 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     selectedDay = DateTime.now();
     focusedDay = DateTime.now();
+    
+    // Load real period data and update algorithm
+    _loadRecentPeriodData();
+  }
+
+  /// Load most recent period start/end from storage and update algorithm
+  Future<void> _loadRecentPeriodData() async {
+    try {
+      final events = await LocalCycleStorage.getPeriodEvents();
+      
+      if (events.isEmpty) return;
+      
+      // Find most recent start and end events
+      DateTime? recentStart;
+      DateTime? recentEnd;
+      
+      for (var event in events) {
+        final eventDate = DateTime.parse(event['date']);
+        
+        if (event['type'] == 'start') {
+          if (recentStart == null || eventDate.isAfter(recentStart)) {
+            recentStart = eventDate;
+          }
+        } else if (event['type'] == 'end') {
+          if (recentEnd == null || eventDate.isAfter(recentEnd)) {
+            recentEnd = eventDate;
+          }
+        }
+      }
+      
+      // Update algorithm with real data
+      if (recentStart != null) {
+        setState(() {
+          algo.recentPeriodStart = recentStart;
+          algo.recentPeriodEnd = recentEnd;
+        });
+      }
+    } catch (e) {
+      print('Error loading period data: $e');
+    }
   }
 
   @override
@@ -84,8 +124,35 @@ class _TrackerScreenState extends State<TrackerScreen> {
   // 📱 Show iOS-style bottom sheet for period input
   void _showPeriodInputSheet() async {
     final today = DateTime.now();
-    final todayType = algo.getType(today);
-    final isPeriodActive = todayType == DayType.period;
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+    
+    // Check if we're currently in a marked period
+    bool isPeriodActive = false;
+    
+    if (algo.recentPeriodStart != null) {
+      final normalizedStart = DateTime(
+        algo.recentPeriodStart!.year, 
+        algo.recentPeriodStart!.month, 
+        algo.recentPeriodStart!.day
+      );
+      
+      if (algo.recentPeriodEnd != null) {
+        final normalizedEnd = DateTime(
+          algo.recentPeriodEnd!.year, 
+          algo.recentPeriodEnd!.month, 
+          algo.recentPeriodEnd!.day
+        );
+        
+        // Check if today is between start and end
+        isPeriodActive = normalizedToday.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
+                        normalizedToday.isBefore(normalizedEnd.add(const Duration(days: 1)));
+      } else {
+        // Period start marked but not end → assume ongoing for periodLength days
+        final periodEndEstimate = normalizedStart.add(Duration(days: algo.periodLength - 1));
+        isPeriodActive = normalizedToday.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
+                        normalizedToday.isBefore(periodEndEstimate.add(const Duration(days: 1)));
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -108,6 +175,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
     // Save to local storage
     await LocalCycleStorage.savePeriodEvent(date: date, type: type);
 
+    // 🔄 Reload real period data to update algorithm
+    await _loadRecentPeriodData();
+
     // Refresh calendar
     setState(() {
       selectedDay = date;
@@ -119,13 +189,19 @@ class _TrackerScreenState extends State<TrackerScreen> {
         SnackBar(
           content: Text(
             type == 'start'
-                ? 'Period start recorded'
-                : 'Period end recorded',
+                ? 'Period start recorded on ${_formatDate(date)}'
+                : 'Period end recorded on ${_formatDate(date)}',
           ),
           duration: const Duration(seconds: 2),
         ),
       );
     }
+  }
+
+  String _formatDate(DateTime date) {
+    final monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${monthNames[date.month]} ${date.day}';
   }
 
   // 🔄 Month / Year toggle

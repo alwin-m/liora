@@ -8,6 +8,7 @@ import 'package:lioraa/home/shop_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../core/cycle_session.dart';
+import '../core/local_cycle_storage.dart';
 import 'cycle_algorithm.dart';
 
 
@@ -25,6 +26,49 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDay = DateTime.now();
 
   CycleAlgorithm get algo => CycleSession.algorithm;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentPeriodData();
+  }
+
+  /// Load most recent period data from storage and update algorithm
+  Future<void> _loadRecentPeriodData() async {
+    try {
+      final events = await LocalCycleStorage.getPeriodEvents();
+      
+      if (events.isEmpty) return;
+      
+      // Find most recent start and end events
+      DateTime? recentStart;
+      DateTime? recentEnd;
+      
+      for (var event in events) {
+        final eventDate = DateTime.parse(event['date']);
+        
+        if (event['type'] == 'start') {
+          if (recentStart == null || eventDate.isAfter(recentStart)) {
+            recentStart = eventDate;
+          }
+        } else if (event['type'] == 'end') {
+          if (recentEnd == null || eventDate.isAfter(recentEnd)) {
+            recentEnd = eventDate;
+          }
+        }
+      }
+      
+      // Update algorithm with real data
+      if (recentStart != null && mounted) {
+        setState(() {
+          CycleSession.algorithm.recentPeriodStart = recentStart;
+          CycleSession.algorithm.recentPeriodEnd = recentEnd;
+        });
+      }
+    } catch (e) {
+      print('Error loading period data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

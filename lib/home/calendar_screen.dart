@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../home/cycle_algorithm.dart';
-import '../core/cycle_session.dart';
+import '../core/cycle_state.dart';
 import '../core/local_cycle_storage.dart';
+import '../core/prediction_engine.dart';
 import 'period_input_sheet.dart';
 
 class TrackerScreen extends StatefulWidget {
@@ -14,11 +14,10 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   bool isMonth = true;
-
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  late CycleAlgorithm algo;
+  late CycleState state;
 
   final List<String> months = const [
     "January","February","March","April","May","June",
@@ -28,52 +27,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
   @override
   void initState() {
     super.initState();
-
-    // ✅ SAME ENGINE AS HOME
-    algo = CycleSession.algorithm;
-
-    selectedDay = DateTime.now();
-    focusedDay = DateTime.now();
-    
-    // Load real period data and update algorithm
-    _loadRecentPeriodData();
+    _loadState();
   }
 
-  /// Load most recent period start/end from storage and update algorithm
-  Future<void> _loadRecentPeriodData() async {
-    try {
-      final events = await LocalCycleStorage.getPeriodEvents();
-      
-      if (events.isEmpty) return;
-      
-      // Find most recent start and end events
-      DateTime? recentStart;
-      DateTime? recentEnd;
-      
-      for (var event in events) {
-        final eventDate = DateTime.parse(event['date']);
-        
-        if (event['type'] == 'start') {
-          if (recentStart == null || eventDate.isAfter(recentStart)) {
-            recentStart = eventDate;
-          }
-        } else if (event['type'] == 'end') {
-          if (recentEnd == null || eventDate.isAfter(recentEnd)) {
-            recentEnd = eventDate;
-          }
-        }
-      }
-      
-      // Update algorithm with real data
-      if (recentStart != null) {
-        setState(() {
-          algo.recentPeriodStart = recentStart;
-          algo.recentPeriodEnd = recentEnd;
-        });
-      }
-    } catch (e) {
-      // Error loading period data - use defaults
-    }
+  /// Load cycle state from storage
+  Future<void> _loadState() async {
+    final loadedState = await LocalCycleStorage.loadCycleState();
+    setState(() {
+      state = loadedState;
+      selectedDay = DateTime.now();
+      focusedDay = DateTime.now();
+    });
   }
 
   @override
@@ -123,36 +87,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // 📱 Show iOS-style bottom sheet for period input
   void _showPeriodInputSheet() async {
-    final today = DateTime.now();
-    final normalizedToday = DateTime(today.year, today.month, today.day);
-    
-    // Check if we're currently in a marked period
-    bool isPeriodActive = false;
-    
-    if (algo.recentPeriodStart != null) {
-      final normalizedStart = DateTime(
-        algo.recentPeriodStart!.year, 
-        algo.recentPeriodStart!.month, 
-        algo.recentPeriodStart!.day
-      );
-      
-      if (algo.recentPeriodEnd != null) {
-        final normalizedEnd = DateTime(
-          algo.recentPeriodEnd!.year, 
-          algo.recentPeriodEnd!.month, 
-          algo.recentPeriodEnd!.day
-        );
-        
-        // Check if today is between start and end
-        isPeriodActive = normalizedToday.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
-                        normalizedToday.isBefore(normalizedEnd.add(const Duration(days: 1)));
-      } else {
-        // Period start marked but not end → assume ongoing for periodLength days
-        final periodEndEstimate = normalizedStart.add(Duration(days: algo.periodLength - 1));
-        isPeriodActive = normalizedToday.isAfter(normalizedStart.subtract(const Duration(days: 1))) &&
-                        normalizedToday.isBefore(periodEndEstimate.add(const Duration(days: 1)));
-      }
-    }
+    // Branch on current bleeding state
+    final isPeriodActive = state.bleedingState == BleedingState.ACTIVE_BLEEDING;
 
     showModalBottomSheet(
       context: context,
@@ -172,13 +108,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // 💾 Handle saved period data
   Future<void> _handlePeriodSaved(String type, DateTime date) async {
-    // Save to local storage
-    await LocalCycleStorage.savePeriodEvent(date: date, type: type);
+    // Mutate state based on event
+    if (type == 'start') {
+      state.markPeriodStart(date);
+    } else {
+      state.markPeriodStop(date);
+    }
 
-    // 🔄 Reload real period data to update algorithm
-    await _loadRecentPeriodData();
+    // Persist state
+    await LocalCycleStorage.saveCycleState(state);
 
-    // Refresh calendar
+    // Refresh calendar immediately
     setState(() {
       selectedDay = date;
       focusedDay = date;
@@ -307,28 +247,37 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // 🎨 Day Cell
+  // 🎨 Day Cell - Pure rendering from state
   Widget _dayCell(DateTime day) {
-    final DayType type = algo.getType(day);
+    final dayType = PredictionEngine.getDayType(day, state);
 
+    Color? backgroundColor;
     Color? borderColor;
     Color textColor = Colors.black;
-    Color? backgroundColor;
 
-    // Use algorithm predictions for coloring
-    // (manual period marks are handled separately with FutureBuilder if needed)
-    if (type == DayType.period) {
-      backgroundColor = const Color(0xFFFFE0E6); // Light red for period
+    // Rendering order as per spec:
+    // 1. Confirmed bleeding (solid red)
+    // 2. Predicted bleeding (light red)
+    // 3. Ovulation (purple)
+    // 4. Fertile window (green)
+    // 5. Normal (transparent)
+
+    if (dayType == DayType.period) {
+      backgroundColor = const Color(0xFFFFE0E6); // Confirmed: light red
       borderColor = Colors.pink;
       textColor = Colors.pink;
-    } else if (type == DayType.fertile) {
-      backgroundColor = const Color(0xFFDFF6DD); // Light green for fertile
-      borderColor = Colors.teal;
-      textColor = Colors.teal;
-    } else if (type == DayType.ovulation) {
-      backgroundColor = const Color(0xFFE8E0F8); // Light purple for ovulation
+    } else if (dayType == DayType.predictedPeriod) {
+      backgroundColor = const Color(0xFFFFE0E6); // Predicted: lighter red
+      borderColor = Colors.pink.shade200;
+      textColor = Colors.pink.shade300;
+    } else if (dayType == DayType.ovulation) {
+      backgroundColor = const Color(0xFFE8E0F8); // Ovulation: purple
       borderColor = Colors.purple;
       textColor = Colors.purple;
+    } else if (dayType == DayType.fertile) {
+      backgroundColor = const Color(0xFFDFF6DD); // Fertile: light green
+      borderColor = Colors.teal;
+      textColor = Colors.teal;
     }
 
     return Center(
@@ -390,43 +339,46 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // 🔥 EDIT LAST PERIOD DATE LOGIC
   Future<void> _editLastPeriodDate() async {
+    final lastCycle = state.getLastConfirmedCycle();
+    final initialDate = lastCycle?.cycleStartDate ?? DateTime.now();
+    
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: algo.lastPeriod,
+      initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
 
     if (pickedDate == null) return;
 
-    setState(() {
-      // 🔄 Rebuild cycle engine safely
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-        ),
-        cycleLength: algo.cycleLength,
-        periodLength: algo.periodLength,
-      );
+    // Update state and save
+    state.markPeriodStart(pickedDate);
+    await LocalCycleStorage.saveCycleState(state);
 
-      algo = CycleSession.algorithm;
+    setState(() {
       selectedDay = pickedDate;
       focusedDay = pickedDate;
     });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Period start updated to ${_formatDate(pickedDate)}')),
+      );
+    }
   }
 
   // 📊 Bottom Info Card (Cycle Day)
   Widget _bottomCard() {
-    final int diff =
-        selectedDay.difference(algo.lastPeriod).inDays;
-
-    final int safeDiff =
-        ((diff % algo.cycleLength) + algo.cycleLength) %
-            algo.cycleLength;
-
-    final int cycleDay = safeDiff + 1;
+    // Calculate cycle day based on state
+    int cycleDay = 1;
+    
+    if (state.bleedingStartDate != null) {
+      final diff = selectedDay.difference(state.bleedingStartDate!).inDays;
+      final safeDiff = ((diff % state.getEffectiveCycleLength()) + 
+                        state.getEffectiveCycleLength()) % 
+                       state.getEffectiveCycleLength();
+      cycleDay = safeDiff + 1;
+    }
 
     return Container(
       margin: const EdgeInsets.all(16),

@@ -7,9 +7,9 @@ import 'package:lioraa/home/profile_screen.dart';
 import 'package:lioraa/home/shop_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../core/cycle_session.dart';
+import '../core/cycle_state.dart';
 import '../core/local_cycle_storage.dart';
-import 'cycle_algorithm.dart';
+import '../core/prediction_engine.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -25,48 +25,21 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  CycleAlgorithm get algo => CycleSession.algorithm;
+  late CycleState state;
 
   @override
   void initState() {
     super.initState();
-    _loadRecentPeriodData();
+    _loadCycleState();
   }
 
-  /// Load most recent period data from storage and update algorithm
-  Future<void> _loadRecentPeriodData() async {
-    try {
-      final events = await LocalCycleStorage.getPeriodEvents();
-      
-      if (events.isEmpty) return;
-      
-      // Find most recent start and end events
-      DateTime? recentStart;
-      DateTime? recentEnd;
-      
-      for (var event in events) {
-        final eventDate = DateTime.parse(event['date']);
-        
-        if (event['type'] == 'start') {
-          if (recentStart == null || eventDate.isAfter(recentStart)) {
-            recentStart = eventDate;
-          }
-        } else if (event['type'] == 'end') {
-          if (recentEnd == null || eventDate.isAfter(recentEnd)) {
-            recentEnd = eventDate;
-          }
-        }
-      }
-      
-      // Update algorithm with real data
-      if (recentStart != null && mounted) {
-        setState(() {
-          CycleSession.algorithm.recentPeriodStart = recentStart;
-          CycleSession.algorithm.recentPeriodEnd = recentEnd;
-        });
-      }
-    } catch (e) {
-      // Error loading period data - use defaults
+  /// Load cycle state from storage
+  Future<void> _loadCycleState() async {
+    final loadedState = await LocalCycleStorage.loadCycleState();
+    if (mounted) {
+      setState(() {
+        state = loadedState;
+      });
     }
   }
 
@@ -164,11 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
           calendarBuilders: CalendarBuilders(
-            defaultBuilder: (_, d, __) => _dayBox(d, algo.getType(d)),
+            defaultBuilder: (_, d, __) => _dayBox(d, PredictionEngine.getDayType(d, state)),
             todayBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), today: true),
+                _dayBox(d, PredictionEngine.getDayType(d, state), today: true),
             selectedBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), selected: true),
+                _dayBox(d, PredictionEngine.getDayType(d, state), selected: true),
           ),
           headerStyle: HeaderStyle(
             titleCentered: true,
@@ -218,9 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= NEXT PERIOD =================
 
   Widget _nextPeriodCard() {
-    final nextPeriod = algo.getNextPeriodDate();
+    final nextPeriod = PredictionEngine.getNextPeriodStart(state);
     final endPeriod =
-        nextPeriod.add(Duration(days: algo.periodLength - 1));
+        PredictionEngine.getNextPeriodEnd(state);
 
     return Container(
       padding: const EdgeInsets.all(20),

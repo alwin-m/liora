@@ -1,125 +1,179 @@
-# LIORA PROPRIETARY SOFTWARE LICENSE
+# LIORA / LEORA PROPRIETARY SOURCE-AVAILABLE LICENSE
 
-Copyright © 2026 Liora Project
+**Copyright © 2026 LIORA (also referred to as “LEORA”) Project.**
 All rights reserved.
 
----
-
-## 1. Ownership
-
-This software application, including but not limited to its source code, object code, architecture, algorithms, databases, workflows, user interface designs, documentation, concepts, branding, naming, and underlying ideas (collectively, the "Software"), is the exclusive intellectual property of the **Liora Project** and its authorized contributors.
-
-All rights, title, and interest in and to the Software are owned solely by the Liora Project and the individuals officially listed as contributors to this repository.
+**Last Updated:** 23 January 2026
 
 ---
 
-## 2. Grant of Limited Permission
+## 1. Ownership and Reservation of Rights
 
-Subject to the terms of this License, permission is granted **only** to:
+This software, including but not limited to all **source code, object code, algorithms, architectures, system designs, workflows, databases (whether logical or physical), data structures, tables, schemas, user interfaces, user experience designs, documentation, reports, branding, naming, visual identity, underlying ideas, methodologies, inventions, concepts, protocols, frameworks, and all related materials** (collectively, the “Software”), is the exclusive intellectual property of the **LIORA Project** and its officially recognized contributors.
 
-* View the source code
-* Study the implementation for educational and academic purposes
-* Gain inspiration from the concepts and architecture
-
-This permission is strictly **non-commercial**, **non-transferable**, **non-sublicensable**, and **revocable**.
+All rights not expressly granted under this License are **strictly reserved**.
 
 ---
 
-## 3. Restrictions
+## 2. Project Leadership and Authority
 
-Except as expressly permitted above, **you may not**:
+The **Project Leader** and primary rights holder is:
 
-* Copy, reproduce, or redistribute any part of the Software
-* Modify, adapt, translate, or create derivative works
-* Use the Software or any portion of its code in commercial, academic, or production systems
-* Integrate the Software into other projects, whether open-source or proprietary
-* Sell, license, sublicense, lease, or monetize the Software
-* Deploy the Software or its derivatives in any public or private environment
+**Alwin Madhu** (also known as Alvin Madhav)
+GitHub: [https://github.com/alwin-m](https://github.com/alwin-m)
+Email: [alwinmadhu4060@gmail.com](mailto:alwinmadhu4060@gmail.com)
 
-Any use beyond viewing and studying the code requires **explicit prior written permission** from the Liora Project owners.
+The Project Leader retains **full and final authority** over:
 
----
+* Governance of this repository
+* Licensing and permission decisions
+* Contributor access levels
+* Major modifications, restructuring, or deletion of files
+* Deletion or archival of the repository
+* Commercialization decisions
 
-## 4. Contributor Rights
-
-Only the officially recognized contributors to this repository are granted the right to:
-
-* Access the full development capabilities of the Software
-* Modify, refactor, or extend the codebase
-* Use the Software for commercial, academic, research, or production purposes
-* Distribute or license the Software under terms approved by the contributors
-
-No rights are granted to third parties unless explicitly authorized in writing.
+No contributor or third party may override the authority of the Project Leader.
 
 ---
 
-## 5. Protection of Ideology and Concepts
+## 3. Contributors and Contribution Rights
 
-The core ideas, methodologies, workflows, and conceptual framework behind the Liora Project are protected intellectual property.
+The following individuals are officially recognized contributors to this project:
 
-Unauthorized replication of the Software’s ideology, functional behavior, or system design for commercial or competitive purposes is strictly prohibited.
+* **Alwin Madhu** – @alwin-m (Project Leader)
+* **Abhishek** – @abhishek-2006-7
+* **Nejin Bejoy** – @nejinbejoy
+* **Majumnair** – @Majumnair
+* **Siraj** – @sirajudheen7official-boop
 
----
-
-## 6. Medical Disclaimer
-
-**IMPORTANT NOTICE – NOT A MEDICAL DEVICE**
-
-The Software is **not** a medically approved, certified, or regulated healthcare tool. It is not licensed by any medical authority, healthcare organization, or regulatory body.
-
-The Software must **not** be used for:
-
-* Medical diagnosis
-* Clinical decision-making
-* Treatment planning
-* Emergency or critical healthcare situations
-
-Reliance on this Software for real-world medical decisions may result in harm. Users are strongly advised to consult qualified medical professionals for all healthcare-related concerns.
+All contributions remain the intellectual property of their respective authors **and** are licensed to the LIORA Project for use, modification, distribution, and commercialization **exclusively within the LIORA Project** under the authority of the Project Leader.
 
 ---
 
-## 7. No Warranty
+## 4. License Grant (Limited, Non-Commercial, Source-Available)
 
-The Software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, accuracy, reliability, or non-infringement.
+Subject to strict compliance with this License, the LIORA Project grants you a **limited, revocable, non-exclusive, non-transferable, non-sublicensable license** to:
 
-The Liora Project and its contributors do not guarantee that the Software will be error-free, secure, uninterrupted, or suitable for any specific use.
+* View and inspect the source code
+* Clone or download the repository
+* Study the implementation for educational purposes
+* Build and run the Software for **personal, non-commercial use**
+* Use the Software on personal devices
 
----
-
-## 8. Limitation of Liability
-
-In no event shall the Liora Project, its contributors, or affiliates be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, misuse, or inability to use the Software, even if advised of the possibility of such damages.
-
----
-
-## 9. Enforcement and Termination
-
-Any violation of this License will result in the immediate termination of all permissions granted herein.
-
-The Liora Project reserves the right to pursue legal action and seek damages for unauthorized use, reproduction, modification, or commercialization of the Software.
+This License **does not grant** any ownership rights.
 
 ---
 
-## 10. Governing Law
+## 5. Commercial Use Restrictions
 
-This License shall be governed by and construed in accordance with the applicable laws of the jurisdiction determined by the Liora Project owners.
+**Commercial use is strictly prohibited** for all non-contributors.
+
+You may **NOT**, without explicit written permission from the Project Leader:
+
+* Sell, license, sublicense, rent, lease, or monetize the Software
+* Use the Software in a paid product, service, or subscription
+* Use the Software in commercial research, analytics, or enterprise systems
+* Offer the Software as part of a business, startup, SaaS, or client work
+* Generate revenue directly or indirectly from the Software
+
+**Commercial use is permitted only** when:
+
+* All officially recognized contributors explicitly agree, **and**
+* Final written approval is granted by the Project Leader
 
 ---
 
-## 11. Contact Information
+## 6. Academic and Research Use
 
-For licensing requests, permissions, or legal inquiries:
+Educational institutions (schools, colleges, and universities) may use the Software **solely for study, learning, and internal academic research purposes**, provided that:
 
-📧 **Team Lead:** [alwinmadhu7@gmail.com](mailto:alwinmadhu7@gmail.com)
+1. **Prior written permission** is obtained from the Project Leader
+2. The Software is not sold, licensed, or redistributed
+3. No derivative commercial product is created
+4. Proper attribution to the LIORA Project is maintained
+
+Permission requests must be sent to:
+**[alwinmadhu4060@gmail.com](mailto:alwinmadhu4060@gmail.com)**
 
 ---
 
-## 👥 Contributors
+## 7. Prohibited Activities
 
-* **Alwin Madhu** – [@alwin-m](https://github.com/alwin-m)
-* **Abhishek** – [@abhishek-2006-7](https://github.com/abhishek-2006-7)
-* **Nejin Bejoy** – [@nejinbejoy](https://github.com/nejinbejoy)
-* **Majumnair** – [@Majumnair](https://github.com/Majumnair)
-* **Siraj** – [@sirajudheen7official-boop](https://github.com/sirajudheen7official-boop)
+You may **NOT**:
 
+* Create or distribute derivative works intended to replicate or compete with this Software
+* Clone, re-implement, or reproduce the core ideas, concepts, workflows, methodologies, or architecture in any language or framework
+* Use the ideology, design philosophy, or system logic to create a similar application
+* Redistribute the Software or modified versions publicly
+* Claim ownership or authorship of the Software
+* Use the Software for third-party or illegal purposes
 
+Any such actions may constitute **copyright infringement, breach of license, and unfair competition**, and may result in legal action.
+
+---
+
+## 8. Modification and Repository Governance
+
+* Only officially recognized contributors may submit modifications
+* Deletion of critical files, databases, or system components requires **explicit approval** from the Project Leader
+* Contributors may add features or updates within assigned permissions
+* Final merge and release authority rests solely with the Project Leader
+
+---
+
+## 9. No Medical Use Disclaimer
+
+This Software is **NOT a medical device** and is **NOT medically certified**.
+
+The Software may generate predictions, insights, reminders, or reports based on user-provided data. Such outputs:
+
+* May be inaccurate or incomplete
+* Depend entirely on user input
+* Are provided for informational purposes only
+
+**Do NOT rely on this Software for medical diagnosis, treatment, or health decisions.**
+
+The contributors and owners assume **no responsibility** for health issues, physical conditions, or medical outcomes arising from the use of this Software.
+
+---
+
+## 10. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED **“AS IS”**, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR ACCURACY.
+
+The entire risk as to the quality and performance of the Software lies with the user.
+
+---
+
+## 11. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE LIORA PROJECT, THE PROJECT LEADER, OR ANY CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, HEALTH ISSUES, BUSINESS INTERRUPTION, OR FINANCIAL LOSS, ARISING FROM THE USE OR INABILITY TO USE THE SOFTWARE.
+
+---
+
+## 12. Enforcement and Legal Action
+
+Any violation of this License may result in:
+
+* Immediate termination of rights under this License
+* Revocation of access
+* Legal action under applicable copyright, intellectual property, and contract laws
+
+---
+
+## 13. Governing Law
+
+This License shall be governed and interpreted in accordance with the applicable laws of the jurisdiction determined by the Project Leader.
+
+---
+
+## 14. Contact Information
+
+For permissions, licensing inquiries, or legal concerns, contact:
+
+**Alwin Madhu (Project Leader)**
+Email: [alwinmadhu4060@gmail.com](mailto:alwinmadhu4060@gmail.com)
+
+---
+
+**© 2026 LIORA Project. All rights reserved.**

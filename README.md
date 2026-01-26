@@ -1,4 +1,4 @@
-# LIORA  🌸
+# LIORA 🌸
 
 **LIORA** is a calm, privacy-first menstrual wellness application designed to help users understand, track, and care for their natural rhythm. The project focuses on emotional safety, clean design, and trust—avoiding clinical harshness while still being technically robust.
 

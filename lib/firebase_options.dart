@@ -41,7 +41,6 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-<<<<<<< HEAD
     apiKey: 'AIzaSyBzUixy2WPXxj4BPjOxG-HGynm9yq7pyBs',
     appId: '1:318953783334:web:ae33df9a4419d50f51a6e7',
     messagingSenderId: '318953783334',
@@ -64,52 +63,19 @@ class DefaultFirebaseOptions {
     messagingSenderId: '318953783334',
     projectId: 'liora-d60a5',
     storageBucket: 'liora-d60a5.firebasestorage.app',
-=======
-    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE',
-    appId: '1:857182781873:web:ef60fe0b9ce60c1d21bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    authDomain: 'liora-56689.firebaseapp.com',
-    storageBucket: 'liora-56689.firebasestorage.app',
-  );
-
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAyxQgmzAvmUPcJXcD9LalrSB4hbZ5rPpY',
-    appId: '1:857182781873:android:34c977add0bb834f21bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    storageBucket: 'liora-56689.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM',
-    appId: '1:857182781873:ios:e2c080ca3e3b79b021bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    storageBucket: 'liora-56689.firebasestorage.app',
->>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     iosBundleId: 'com.example.lioraa',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-<<<<<<< HEAD
     apiKey: 'AIzaSyA2_fmoo5_sbhfoUBlgMR9mgEEUrqRQeTE',
     appId: '1:318953783334:ios:1e84ead9923b32da51a6e7',
     messagingSenderId: '318953783334',
     projectId: 'liora-d60a5',
     storageBucket: 'liora-d60a5.firebasestorage.app',
-=======
-    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM',
-    appId: '1:857182781873:ios:e2c080ca3e3b79b021bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    storageBucket: 'liora-56689.firebasestorage.app',
->>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     iosBundleId: 'com.example.lioraa',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-<<<<<<< HEAD
     apiKey: 'AIzaSyBzUixy2WPXxj4BPjOxG-HGynm9yq7pyBs',
     appId: '1:318953783334:web:eebfc9e07838397151a6e7',
     messagingSenderId: '318953783334',
@@ -119,13 +85,3 @@ class DefaultFirebaseOptions {
   );
 
 }
-=======
-    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE',
-    appId: '1:857182781873:web:1409310dfd3761d621bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    authDomain: 'liora-56689.firebaseapp.com',
-    storageBucket: 'liora-56689.firebasestorage.app',
-  );
-}
->>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af

@@ -14,7 +14,7 @@ class ProductService {
     );
   }
 
-  /// 🔥 Reduce stock when user buys
+  /// Reduce stock when user buys
   Future<void> reduceStock(String productId) async {
     final ref = _db.collection('products').doc(productId);
 
@@ -32,24 +32,15 @@ class ProductService {
     });
   }
 
-  /// 🔁 Restore stock if order cancelled
-<<<<<<< HEAD
+  /// Restore stock if order cancelled
   Future<void> restoreStock(String productId, int quantity) async {
-=======
-  Future<void> restoreStock(String productId) async {
->>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     final ref = _db.collection('products').doc(productId);
 
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(ref);
-<<<<<<< HEAD
-      // 🔁 Restore by quantity (not hardcoded 1)
+      // Restore by quantity (not hardcoded 1)
       transaction.update(ref, {
         'stock': snapshot['stock'] + quantity,
-=======
-      transaction.update(ref, {
-        'stock': snapshot['stock'] + 1,
->>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
       });
     });
   }

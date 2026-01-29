@@ -10,12 +10,16 @@ class OrderService {
   Future<void> placeOrder({
     required String productId,
     required String productName,
+<<<<<<< HEAD
     required String imageUrl,
     required int price,
     required int quantity,
     required String fullName,
     required String address,
     required String phone,
+=======
+    required int price,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   }) async {
     final uid = _auth.currentUser!.uid;
 
@@ -27,6 +31,7 @@ class OrderService {
       final productSnap = await transaction.get(productRef);
       final stock = productSnap['stock'];
 
+<<<<<<< HEAD
       if (stock < quantity) {
         throw Exception('Insufficient stock');
       }
@@ -34,6 +39,15 @@ class OrderService {
       // 🔥 Reduce stock by quantity
       transaction.update(productRef, {
         'stock': stock - quantity,
+=======
+      if (stock <= 0) {
+        throw Exception('Out of stock');
+      }
+
+      // 🔥 Reduce stock
+      transaction.update(productRef, {
+        'stock': stock - 1,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
       });
 
       // 🔥 Create order
@@ -41,6 +55,7 @@ class OrderService {
         orderId: orderRef.id,
         productId: productId,
         productName: productName,
+<<<<<<< HEAD
         imageUrl: imageUrl,
         price: price,
         quantity: quantity,
@@ -48,6 +63,9 @@ class OrderService {
         fullName: fullName,
         address: address,
         phone: phone,
+=======
+        price: price,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
         createdAt: DateTime.now(),
         status: 'placed',
       );
@@ -60,7 +78,10 @@ class OrderService {
   Future<void> cancelOrder({
     required String orderId,
     required String productId,
+<<<<<<< HEAD
     required int quantity,
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   }) async {
     final uid = _auth.currentUser!.uid;
 
@@ -71,6 +92,7 @@ class OrderService {
     await _db.runTransaction((transaction) async {
       final productSnap = await transaction.get(productRef);
 
+<<<<<<< HEAD
       // 🔁 Restore stock by quantity (not hardcoded 1)
       transaction.update(productRef, {
         'stock': productSnap['stock'] + quantity,
@@ -81,6 +103,13 @@ class OrderService {
         'status': 'cancelled',
         'cancelledAt': Timestamp.now(),
       });
+=======
+      transaction.update(productRef, {
+        'stock': productSnap['stock'] + 1,
+      });
+
+      transaction.delete(orderRef);
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     });
   }
 }

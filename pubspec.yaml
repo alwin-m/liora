@@ -41,7 +41,10 @@ dependencies:
   firebase_auth: ^6.1.3
   firebase_storage: ^13.0.6
   image_picker: ^1.2.1
+<<<<<<< HEAD
   http: ^1.6.0
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   
 
 dev_dependencies:

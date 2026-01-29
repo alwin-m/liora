@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
 class OrderModel {
   final String orderId;
   final String productId;
   final String productName;
+<<<<<<< HEAD
   final String? imageUrl;
   final int price;
   final int quantity;
@@ -14,11 +18,17 @@ class OrderModel {
   final DateTime createdAt;
   final String status;
   final DateTime? cancelledAt;
+=======
+  final int price;
+  final DateTime createdAt;
+  final String status;
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
 
   OrderModel({
     required this.orderId,
     required this.productId,
     required this.productName,
+<<<<<<< HEAD
     this.imageUrl,
     required this.price,
     required this.quantity,
@@ -68,6 +78,21 @@ class OrderModel {
       'status': status,
       'cancelledAt':
           cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+=======
+    required this.price,
+    required this.createdAt,
+    required this.status,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'orderId': orderId, // ✅ FIX
+      'productId': productId,
+      'productName': productName,
+      'price': price,
+      'createdAt': createdAt,
+      'status': status,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     };
   }
 }

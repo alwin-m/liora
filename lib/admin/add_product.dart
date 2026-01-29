@@ -223,7 +223,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }*/
+<<<<<<< HEAD
 import 'dart:typed_data';
+=======
+import 'dart:io';
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -239,6 +243,7 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final nameController = TextEditingController();
   final priceController = TextEditingController();
+<<<<<<< HEAD
   final stockController = TextEditingController();
   final descController = TextEditingController();
 
@@ -364,6 +369,8 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final nameController = TextEditingController();
   final priceController = TextEditingController();
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   final descController = TextEditingController();
   final stockController = TextEditingController();
   final imageUrlController = TextEditingController();
@@ -371,6 +378,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool trending = false;
   bool loading = false;
 
+<<<<<<< HEAD
   final ImagePicker picker = ImagePicker();
 
   /// Works for Web + Mobile
@@ -436,10 +444,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       return '';
     }
+=======
+  File? selectedImage;
+  final ImagePicker picker = ImagePicker();
+
+  // 📸 Pick image
+  Future<void> pickImage() async {
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        selectedImage = File(picked.path);
+      });
+    }
+  }
+
+  // ☁️ Upload image to Firebase Storage
+  Future<String> uploadImage(File image) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('product_images')
+        .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+    await ref.putFile(image);
+    return await ref.getDownloadURL();
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   }
 
   // ➕ Add product
   Future<void> addProduct() async {
+<<<<<<< HEAD
     // ✅ Validation
     if (nameController.text.isEmpty ||
         priceController.text.isEmpty ||
@@ -470,11 +503,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'stock': int.parse(stockController.text.trim()),
         'image': imageUrl.isEmpty
             ? 'https://via.placeholder.com/300x200?text=No+Image'
+=======
+    try {
+      setState(() => loading = true);
+
+      String imageUrl = imageUrlController.text.trim();
+
+      if (selectedImage != null) {
+        imageUrl = await uploadImage(selectedImage!);
+      }
+
+      await FirebaseFirestore.instance.collection('products').add({
+        'name': nameController.text.trim(),
+        'price': int.parse(priceController.text.trim()),
+        'description': descController.text.trim(),
+        'stock': int.parse(stockController.text.trim()),
+        'imageUrl': imageUrl.isEmpty
+            ? 'https://via.placeholder.com/300x200'
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
             : imageUrl,
         'trending': trending,
         'createdAt': Timestamp.now(),
       });
 
+<<<<<<< HEAD
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -511,24 +563,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (mounted) {
         setState(() => loading = false);
       }
+=======
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => loading = false);
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
+=======
+      // 🌈 Gradient AppBar
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
+<<<<<<< HEAD
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
             ),
           ),
         ),
         title: const Text("Add Product"),
       ),
+<<<<<<< HEAD
+=======
+
+      // 🌈 Gradient background
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -543,13 +615,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
             children: [
               // 🖼️ Image Picker
               GestureDetector(
+<<<<<<< HEAD
                 onTap: loading ? null : pickImage,
+=======
+                onTap: pickImage,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
                 child: Container(
                   height: 160,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     color: Colors.white.withOpacity(0.85),
+<<<<<<< HEAD
                     border: Border.all(
                       color: Colors.pinkAccent.withOpacity(0.5),
                       width: 2,
@@ -580,11 +657,33 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           borderRadius: BorderRadius.circular(20),
                           child: Image.memory(
                             imageBytes!,
+=======
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.05),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: selectedImage == null
+                      ? const Center(
+                          child: Icon(Icons.add_photo_alternate,
+                              size: 40, color: Colors.pinkAccent),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.file(
+                            selectedImage!,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
                             fit: BoxFit.cover,
                           ),
                         ),
                 ),
               ),
+<<<<<<< HEAD
+=======
+
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
               const SizedBox(height: 16),
 
               _buildTextField(
@@ -596,7 +695,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
               _buildTextField(
                 controller: priceController,
+<<<<<<< HEAD
                 label: "Price (₹)",
+=======
+                label: "Price",
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
                 icon: Icons.currency_rupee,
                 keyboardType: TextInputType.number,
               ),
@@ -625,6 +728,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 16),
 
+<<<<<<< HEAD
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -639,10 +743,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   activeColor: Colors.pinkAccent,
                 ),
+=======
+              // ⭐ Trending toggle
+              SwitchListTile(
+                value: trending,
+                onChanged: (v) => setState(() => trending = v),
+                title: const Text("Mark as Trending"),
+                activeColor: Colors.pinkAccent,
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
               ),
 
               const SizedBox(height: 30),
 
+<<<<<<< HEAD
+=======
+              // 🚀 Add Button
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -669,7 +785,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+<<<<<<< HEAD
                             color: Colors.white,
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
                           ),
                         ),
                 ),
@@ -681,6 +800,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+<<<<<<< HEAD
+=======
+  // 🌟 Custom TextField
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -691,13 +814,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
+<<<<<<< HEAD
         color: Colors.white.withOpacity(0.85),
+=======
+        gradient: LinearGradient(
+          colors: [Colors.white.withOpacity(0.9), Colors.white.withOpacity(0.7)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+<<<<<<< HEAD
         enabled: !loading,
+=======
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.pinkAccent),
           labelText: label,
@@ -708,4 +847,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
     );
   }
+<<<<<<< HEAD
 }*/
+=======
+}
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af

@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 {"flutter":{"platforms":{"android":{"default":{"projectId":"liora-d60a5","appId":"1:318953783334:android:b4eb669170d7a1c151a6e7","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"liora-d60a5","configurations":{"android":"1:318953783334:android:b4eb669170d7a1c151a6e7","ios":"1:318953783334:ios:1e84ead9923b32da51a6e7","macos":"1:318953783334:ios:1e84ead9923b32da51a6e7","web":"1:318953783334:web:ae33df9a4419d50f51a6e7","windows":"1:318953783334:web:eebfc9e07838397151a6e7"}}}}}}
+=======
+{"flutter":{"platforms":{"android":{"default":{"projectId":"liora-56689","appId":"1:857182781873:android:34c977add0bb834f21bd90","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"liora-56689","configurations":{"android":"1:857182781873:android:34c977add0bb834f21bd90","ios":"1:857182781873:ios:e2c080ca3e3b79b021bd90","macos":"1:857182781873:ios:e2c080ca3e3b79b021bd90","web":"1:857182781873:web:ef60fe0b9ce60c1d21bd90","windows":"1:857182781873:web:1409310dfd3761d621bd90"}}}}}}
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af

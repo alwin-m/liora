@@ -11,8 +11,7 @@ class OnboardingQuestionsScreen extends StatefulWidget {
       _OnboardingQuestionsScreenState();
 }
 
-class _OnboardingQuestionsScreenState
-    extends State<OnboardingQuestionsScreen> {
+class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen> {
   final PageController _controller = PageController();
   int step = 0;
 
@@ -30,14 +29,13 @@ class _OnboardingQuestionsScreenState
     final today = DateTime.now();
     int years = today.year - dateOfBirth!.year;
     if (today.month < dateOfBirth!.month ||
-        (today.month == dateOfBirth!.month &&
-            today.day < dateOfBirth!.day)) {
+        (today.month == dateOfBirth!.month && today.day < dateOfBirth!.day)) {
       years--;
     }
     return years;
   }
 
-  void _next() {
+  Future<void> _next() async {
     if (step < 7) {
       setState(() => step++);
       _controller.nextPage(
@@ -51,10 +49,15 @@ class _OnboardingQuestionsScreenState
         periodLength: periodLength,
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      // 🔥 SAVE TO FIRESTORE
+      await CycleSession.saveToFirestore();
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     }
   }
 
@@ -156,58 +159,75 @@ class _OnboardingQuestionsScreenState
 
   // STEP 1 — LAST PERIOD
   Widget _lastPeriodStep() => _simpleStep(
-        "When did your last menstrual cycle start?",
-        _datePickerBox(
-          label: "Last Menstrual Cycle Start Date",
-          date: lastPeriodDate,
-          onPick: (d) => setState(() => lastPeriodDate = d),
-        ),
-      );
+    "When did your last menstrual cycle start?",
+    _datePickerBox(
+      label: "Last Menstrual Cycle Start Date",
+      date: lastPeriodDate,
+      onPick: (d) => setState(() => lastPeriodDate = d),
+    ),
+  );
 
   Widget _cycleLengthStep() => _simpleStep(
-        "About how many days are there between your cycles?",
-        _pillWrap([21, 24, 27, 28, 30, 32], cycleLength,
-            (v) => setState(() => cycleLength = v)),
-      );
+    "About how many days are there between your cycles?",
+    _pillWrap(
+      [21, 24, 27, 28, 30, 32],
+      cycleLength,
+      (v) => setState(() => cycleLength = v),
+    ),
+  );
 
   Widget _periodLengthStep() => _simpleStep(
-        "How long do your periods usually last?",
-        _pillWrap([2, 3, 4, 5, 6, 7, 8, 9, 10], periodLength,
-            (v) => setState(() => periodLength = v)),
-      );
+    "How long do your periods usually last?",
+    _pillWrap(
+      [2, 3, 4, 5, 6, 7, 8, 9, 10],
+      periodLength,
+      (v) => setState(() => periodLength = v),
+    ),
+  );
 
   Widget _flowStep() => _simpleStep(
-        "How heavy is your flow usually?",
-        _stringWrap(["Light", "Medium", "Heavy"], flowLevel,
-            (v) => setState(() => flowLevel = v)),
-      );
+    "How heavy is your flow usually?",
+    _stringWrap(
+      ["Light", "Medium", "Heavy"],
+      flowLevel,
+      (v) => setState(() => flowLevel = v),
+    ),
+  );
 
   Widget _regularityStep() => _simpleStep(
-        "Are your cycles usually regular?",
-        _stringWrap(["Very regular", "Mostly regular", "Irregular"],
-            cycleRegularity, (v) => setState(() => cycleRegularity = v)),
-      );
+    "Are your cycles usually regular?",
+    _stringWrap(
+      ["Very regular", "Mostly regular", "Irregular"],
+      cycleRegularity,
+      (v) => setState(() => cycleRegularity = v),
+    ),
+  );
 
   Widget _pmsStep() => _simpleStep(
-        "Do you usually get PMS symptoms?",
-        _stringWrap(["None", "Mild", "Moderate", "Severe"], pmsLevel,
-            (v) => setState(() => pmsLevel = v)),
-      );
+    "Do you usually get PMS symptoms?",
+    _stringWrap(
+      ["None", "Mild", "Moderate", "Severe"],
+      pmsLevel,
+      (v) => setState(() => pmsLevel = v),
+    ),
+  );
 
   Widget _finishStep() => Column(
-        children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: Color(0xFFF4C7D8),
-            child: Icon(Icons.check, color: Color(0xFFE67598), size: 32),
-          ),
-          const SizedBox(height: 16),
-          const Text("You're all set ✨",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          _primaryButton("Explore Your Calendar"),
-        ],
-      );
+    children: [
+      const CircleAvatar(
+        radius: 28,
+        backgroundColor: Color(0xFFF4C7D8),
+        child: Icon(Icons.check, color: Color(0xFFE67598), size: 32),
+      ),
+      const SizedBox(height: 16),
+      const Text(
+        "You're all set ✨",
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 24),
+      _primaryButton("Explore Your Calendar"),
+    ],
+  );
 
   // UI HELPERS
 
@@ -215,8 +235,10 @@ class _OnboardingQuestionsScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 24),
         body,
         const Spacer(),
@@ -250,9 +272,9 @@ class _OnboardingQuestionsScreenState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(date == null
-                ? label
-                : "${date.day}/${date.month}/${date.year}"),
+            Text(
+              date == null ? label : "${date.day}/${date.month}/${date.year}",
+            ),
             const Icon(Icons.calendar_today, color: Color(0xFFE67598)),
           ],
         ),
@@ -260,8 +282,7 @@ class _OnboardingQuestionsScreenState
     );
   }
 
-  Widget _pillWrap(
-      List<int> values, int selected, ValueChanged<int> onSelect) {
+  Widget _pillWrap(List<int> values, int selected, ValueChanged<int> onSelect) {
     return Wrap(
       spacing: 8,
       children: values
@@ -271,7 +292,10 @@ class _OnboardingQuestionsScreenState
   }
 
   Widget _stringWrap(
-      List<String> values, String selected, ValueChanged<String> onSelect) {
+    List<String> values,
+    String selected,
+    ValueChanged<String> onSelect,
+  ) {
     return Wrap(
       spacing: 8,
       children: values
@@ -289,10 +313,13 @@ class _OnboardingQuestionsScreenState
           color: selected ? const Color(0xFFE67598) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(text,
-            style: TextStyle(
-                color: selected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w600)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -305,8 +332,9 @@ class _OnboardingQuestionsScreenState
         onPressed: enabled ? _next : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFE67598),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: Text(text),
       ),

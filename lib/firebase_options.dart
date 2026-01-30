@@ -17,16 +17,22 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
+      // TODO: Web is currently configured for old project (liora-56689).
+      // Run `flutterfire configure` to update.
       return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
+        // TODO: iOS is currently configured for old project (liora-56689).
+        // Run `flutterfire configure` to update.
         return ios;
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
+        // TODO: Windows is currently configured for old project (liora-56689).
+        // Run `flutterfire configure` to update.
         return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
@@ -41,7 +47,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE',
+    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE', // OLD
     appId: '1:857182781873:web:ef60fe0b9ce60c1d21bd90',
     messagingSenderId: '857182781873',
     projectId: 'liora-56689',
@@ -50,15 +56,15 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAyxQgmzAvmUPcJXcD9LalrSB4hbZ5rPpY',
-    appId: '1:857182781873:android:34c977add0bb834f21bd90',
-    messagingSenderId: '857182781873',
-    projectId: 'liora-56689',
-    storageBucket: 'liora-56689.firebasestorage.app',
+    apiKey: 'AIzaSyAFhAcg6mAXH-6PlGy3IVp6bClKsDkjv8Q', // ✅ NEW (liora-1e2ea)
+    appId: '1:355378586759:android:533dcc856478c05b058422', // ✅ NEW
+    messagingSenderId: '355378586759', // ✅ NEW
+    projectId: 'liora-1e2ea', // ✅ NEW
+    storageBucket: 'liora-1e2ea.firebasestorage.app', // ✅ NEW
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM',
+    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM', // OLD
     appId: '1:857182781873:ios:e2c080ca3e3b79b021bd90',
     messagingSenderId: '857182781873',
     projectId: 'liora-56689',
@@ -67,7 +73,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM',
+    apiKey: 'AIzaSyAYNWekDPfDMy8tl8MpxTCQilt14zL9dvM', // OLD
     appId: '1:857182781873:ios:e2c080ca3e3b79b021bd90',
     messagingSenderId: '857182781873',
     projectId: 'liora-56689',
@@ -76,7 +82,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE',
+    apiKey: 'AIzaSyAxHqLJNCK16BpokSc0m83cZNrfRmOqMKE', // OLD
     appId: '1:857182781873:web:1409310dfd3761d621bd90',
     messagingSenderId: '857182781873',
     projectId: 'liora-56689',

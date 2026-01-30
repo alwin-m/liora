@@ -406,7 +406,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 value: trending,
                 onChanged: (v) => setState(() => trending = v),
                 title: const Text("Mark as Trending"),
-                activeColor: Colors.pinkAccent,
+                activeThumbColor: Colors.pinkAccent,
               ),
 
               const SizedBox(height: 30),

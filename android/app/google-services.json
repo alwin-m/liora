@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "857182781873",
-    "project_id": "liora-56689",
-    "storage_bucket": "liora-56689.firebasestorage.app"
+    "project_number": "355378586759",
+    "project_id": "liora-1e2ea",
+    "storage_bucket": "liora-1e2ea.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:857182781873:android:34c977add0bb834f21bd90",
+        "mobilesdk_app_id": "1:355378586759:android:533dcc856478c05b058422",
         "android_client_info": {
           "package_name": "com.example.lioraa"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAyxQgmzAvmUPcJXcD9LalrSB4hbZ5rPpY"
+          "current_key": "AIzaSyAFhAcg6mAXH-6PlGy3IVp6bClKsDkjv8Q"
         }
       ],
       "services": {

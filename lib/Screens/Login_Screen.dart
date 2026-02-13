@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatefulWidget  
+{
   const LoginScreen({super.key});
 
   @override
@@ -263,3 +264,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

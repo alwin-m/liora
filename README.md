@@ -4,7 +4,7 @@
 
 ---
 
-## 🌿 Project Overview
+## 🌿  Project Overview
 
 LIORA is built as a **wellness companion**, not just a tracker. It blends thoughtful UI/UX with secure data handling to provide:
 

@@ -297,7 +297,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../core/cycle_session.dart';
 import 'cycle_algorithm.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -311,7 +310,24 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  CycleAlgorithm get algo => CycleSession.algorithm;
+  late CycleAlgorithm _algo;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Initialize with safe default if not set
+    try {
+      _algo = CycleSession.algorithm;
+    } catch (e) {
+      _algo = CycleAlgorithm(
+        lastPeriod: DateTime.now(),
+        cycleLength: 28,
+        periodLength: 5,
+      );
+    }
+  }
+
+  CycleAlgorithm get algo => _algo;
 
   @override
   Widget build(BuildContext context) {
@@ -341,8 +357,14 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Track"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Shop"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: "Track",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: "Shop",
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
@@ -390,9 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _calendarCard() {
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: TableCalendar(
@@ -447,8 +467,8 @@ class _HomeScreenState extends State<HomeScreen> {
         border: selected
             ? Border.all(color: Colors.pinkAccent, width: 2)
             : today
-                ? Border.all(color: Colors.deepOrangeAccent, width: 2)
-                : null,
+            ? Border.all(color: Colors.deepOrangeAccent, width: 2)
+            : null,
       ),
       alignment: Alignment.center,
       child: Text(
@@ -462,8 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _nextPeriodCard() {
     final nextPeriod = algo.getNextPeriodDate();
-    final endPeriod =
-        nextPeriod.add(Duration(days: algo.periodLength - 1));
+    final endPeriod = nextPeriod.add(Duration(days: algo.periodLength - 1));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -537,8 +556,7 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             itemCount: products.length,
             itemBuilder: (_, i) {
-              final productData =
-                  products[i].data() as Map<String, dynamic>;
+              final productData = products[i].data() as Map<String, dynamic>;
               return GestureDetector(
                 onTap: () => _showProductPopup(
                   productId: products[i].id,
@@ -561,12 +579,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -615,11 +628,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required String productId,
     required Map<String, dynamic> productData,
   }) {
-    final List<String> details =
-        List<String>.from(productData['details'] ?? []);
+    final List<String> details = List<String>.from(
+      productData['details'] ?? [],
+    );
     final String name = productData['name'] ?? 'Product';
     final int price = (productData['price'] ?? 0).toInt();
-    final String image = productData['image'] ??
+    final String image =
+        productData['image'] ??
         'https://via.placeholder.com/300x200?text=Product';
 
     showDialog(
@@ -817,10 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text(
                       'Where should we deliver your order?',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -874,8 +886,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: const [
-                        Icon(Icons.local_shipping_outlined,
-                            size: 20, color: Colors.black87),
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          size: 20,
+                          color: Colors.black87,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -1004,15 +1019,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please login first')));
       return;
     }
 
     try {
-      final productRef =
-          FirebaseFirestore.instance.collection('products').doc(productId);
+      final productRef = FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId);
 
       await FirebaseFirestore.instance.runTransaction((txn) async {
         final snap = await txn.get(productRef);
@@ -1045,9 +1061,9 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.pop(context);
       _showOrderSuccess(productName, address);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -1070,25 +1086,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.green.shade100,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check,
-                    color: Colors.green.shade700, size: 32),
+                child: Icon(
+                  Icons.check,
+                  color: Colors.green.shade700,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Order Confirmed!',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Text(
                 '$productName will be delivered to:',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 8),
               Container(
@@ -1159,8 +1172,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _month(int m) {
     const months = [
-      "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return months[m];
   }

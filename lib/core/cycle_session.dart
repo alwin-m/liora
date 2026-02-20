@@ -21,14 +21,30 @@ class CycleSession {
   /// 🔄 LOAD cycle data from Firestore
   static Future<void> loadFromFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      // ✅ Initialize with default if no user
+      algorithm = CycleAlgorithm(
+        lastPeriod: DateTime.now(),
+        cycleLength: 28,
+        periodLength: 5,
+      );
+      return;
+    }
 
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .get();
 
-    if (!doc.exists) return;
+    if (!doc.exists) {
+      // ✅ Initialize with default if document doesn't exist
+      algorithm = CycleAlgorithm(
+        lastPeriod: DateTime.now(),
+        cycleLength: 28,
+        periodLength: 5,
+      );
+      return;
+    }
 
     final data = doc.data()!;
 
@@ -36,6 +52,13 @@ class CycleSession {
     if (data['lastPeriodDate'] != null) {
       algorithm = CycleAlgorithm(
         lastPeriod: (data['lastPeriodDate'] as Timestamp).toDate(),
+        cycleLength: data['cycleLength'] ?? 28,
+        periodLength: data['periodLength'] ?? 5,
+      );
+    } else {
+      // ✅ Initialize with default if lastPeriodDate is null
+      algorithm = CycleAlgorithm(
+        lastPeriod: DateTime.now(),
         cycleLength: data['cycleLength'] ?? 28,
         periodLength: data['periodLength'] ?? 5,
       );

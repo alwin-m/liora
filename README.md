@@ -109,6 +109,8 @@ Core UI and navigation are implemented. Additional features, optimization, and t
 * **Siraj** – [@sirajudheen7official-boop](https://github.com/sirajudheen7official-boop)
 
 ---
+<img width="909" height="1028" alt="Screenshot 2026-02-20 234742" src="https://github.com/user-attachments/assets/b1da6087-a54b-488e-ae80-f5ba41a18625" />
+
 
 ## 📜 License
 

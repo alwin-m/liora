@@ -1055,6 +1055,7 @@ class _ShopScreenState extends State<ShopScreen> {
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// =====================
 /// PRODUCT MODEL
@@ -1085,8 +1086,8 @@ class Product {
       id: doc.id,
       name: data?['name'] ?? 'Unnamed Product',
       price: (data?['price'] ?? 0) as int,
-      image: data?['image'] ??
-          'https://via.placeholder.com/300x200?text=No+Image',
+      image:
+          data?['image'] ?? 'https://via.placeholder.com/300x200?text=No+Image',
       details: data?['details'] != null
           ? List<String>.from(data!['details'])
           : <String>[],
@@ -1095,6 +1096,7 @@ class Product {
     );
   }
 }
+
 /// =====================
 /// Cart item model
 /// =====================
@@ -1102,16 +1104,10 @@ class CartItem {
   final Product product;
   int quantity;
 
-  CartItem({
-    required this.product,
-    required this.quantity,
-  });
+  CartItem({required this.product, required this.quantity});
 
   int get totalPrice => product.price * quantity;
-  
 }
-
-
 
 /// =====================
 /// SHOP SCREEN
@@ -1129,47 +1125,39 @@ class _ShopScreenState extends State<ShopScreen> {
   bool isProcessing = false;
 
   /// =====================
-/// ADD TO CART (STEP 4)
-/// =====================
-void addToCart(Product product) {
-  if (product.stock <= 0) return;
+  /// ADD TO CART (STEP 4)
+  /// =====================
+  void addToCart(Product product) {
+    if (product.stock <= 0) return;
 
-  final index =
-      cart.indexWhere((item) => item.product.id == product.id);
+    final index = cart.indexWhere((item) => item.product.id == product.id);
 
-  setState(() {
-    if (index != -1) {
-      // Product already in cart → increase quantity
-      if (cart[index].quantity < product.stock) {
-        cart[index].quantity++;
+    setState(() {
+      if (index != -1) {
+        // Product already in cart → increase quantity
+        if (cart[index].quantity < product.stock) {
+          cart[index].quantity++;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Only ${product.stock} items available'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Only ${product.stock} items available'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        // New product → add to cart
+        cart.add(CartItem(product: product, quantity: 1));
       }
-    } else {
-      // New product → add to cart
-      cart.add(
-        CartItem(
-          product: product,
-          quantity: 1,
-        ),
-      );
-    }
-  });
+    });
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('${product.name} added to cart'),
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
-}
-
-
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${product.name} added to cart'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   /// =====================
   /// BUY PRODUCT (FIRESTORE)
@@ -1181,9 +1169,9 @@ void addToCart(Product product) {
     String phone,
   ) async {
     if (fullName.isEmpty || address.isEmpty || phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all details')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all details')));
       return;
     }
 
@@ -1193,8 +1181,9 @@ void addToCart(Product product) {
 
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final productRef =
-          FirebaseFirestore.instance.collection('products').doc(product.id);
+      final productRef = FirebaseFirestore.instance
+          .collection('products')
+          .doc(product.id);
 
       await FirebaseFirestore.instance.runTransaction((txn) async {
         final snap = await txn.get(productRef);
@@ -1229,89 +1218,88 @@ void addToCart(Product product) {
 
       _showOrderConfirmed(product, address);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => isProcessing = false);
     }
   }
-// ⚠️ NOTE:
-// This reduces stock by 1.
-// When cart checkout is added, this must reduce by quantity.
-/// =====================
-/// CHECKOUT FULL CART (STEP 5 – PART C)
-/// =====================
-Future<void> checkoutCart(
-  String fullName,
-  String address,
-  String phone,
-) async {
-  if (fullName.isEmpty || address.isEmpty || phone.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please fill all details')),
-    );
-    return;
-  }
 
-  if (isProcessing) return;
-  setState(() => isProcessing = true);
+  // ⚠️ NOTE:
+  // This reduces stock by 1.
+  // When cart checkout is added, this must reduce by quantity.
+  /// =====================
+  /// CHECKOUT FULL CART (STEP 5 – PART C)
+  /// =====================
+  Future<void> checkoutCart(
+    String fullName,
+    String address,
+    String phone,
+  ) async {
+    if (fullName.isEmpty || address.isEmpty || phone.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all details')));
+      return;
+    }
 
-  try {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final db = FirebaseFirestore.instance;
+    if (isProcessing) return;
+    setState(() => isProcessing = true);
 
-    await db.runTransaction((txn) async {
-      for (final item in cart) {
-        final productRef =
-            db.collection('products').doc(item.product.id);
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final db = FirebaseFirestore.instance;
 
-        final snap = await txn.get(productRef);
-        final stock = snap['stock'];
+      await db.runTransaction((txn) async {
+        for (final item in cart) {
+          final productRef = db.collection('products').doc(item.product.id);
 
-        if (stock < item.quantity) {
-          throw Exception(
-            '${item.product.name} is out of stock',
-          );
+          final snap = await txn.get(productRef);
+          final stock = snap['stock'];
+
+          if (stock < item.quantity) {
+            throw Exception('${item.product.name} is out of stock');
+          }
+
+          // 🔻 Reduce stock by quantity
+          txn.update(productRef, {'stock': stock - item.quantity});
+
+          // 📦 Create order
+          final orderRef = db
+              .collection('users')
+              .doc(uid)
+              .collection('orders')
+              .doc();
+
+          txn.set(orderRef, {
+            'productId': item.product.id,
+            'productName': item.product.name,
+            'imageUrl': item.product.image,
+            'price': item.product.price,
+            'quantity': item.quantity,
+            'total': item.totalPrice,
+            'fullName': fullName,
+            'address': address,
+            'phone': phone,
+            'status': 'placed',
+            'createdAt': Timestamp.now(),
+          });
         }
+      });
 
-        // 🔻 Reduce stock by quantity
-        txn.update(productRef, {
-          'stock': stock - item.quantity,
-        });
+      setState(() => cart.clear());
 
-        // 📦 Create order
-        final orderRef = db
-            .collection('users')
-            .doc(uid)
-            .collection('orders')
-            .doc();
-
-        txn.set(orderRef, {
-          'productId': item.product.id,
-          'productName': item.product.name,
-          'imageUrl': item.product.image,
-          'price': item.product.price,
-          'quantity': item.quantity,
-          'total': item.totalPrice,
-          'fullName': fullName,
-          'address': address,
-          'phone': phone,
-          'status': 'placed',
-          'createdAt': Timestamp.now(),
-        });
-      }
-    });
-
-    setState(() => cart.clear());
-
-    _showBulkOrderConfirmed(address);
-  } catch (e) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(e.toString())));
-  } finally {
-    setState(() => isProcessing = false);
+      _showBulkOrderConfirmed(address);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => isProcessing = false);
+    }
   }
-}
+
   /// =====================
   /// UI
   /// =====================
@@ -1335,21 +1323,27 @@ Future<void> checkoutCart(
                       radius: 9,
                       backgroundColor: Colors.black,
                       child: Text(
-                        cart.fold<int>(0, (sum, item) => sum + item.quantity).toString(),
+                        cart
+                            .fold<int>(
+                              0,
+                              (total, item) => total + item.quantity,
+                            )
+                            .toString(),
 
                         style: const TextStyle(
-                            fontSize: 10, color: Colors.white),
+                          fontSize: 10,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance.collection('products').snapshots(),
+        stream: FirebaseFirestore.instance.collection('products').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -1362,8 +1356,7 @@ Future<void> checkoutCart(
           return GridView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: products.length,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
@@ -1389,27 +1382,34 @@ Future<void> checkoutCart(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.network(product.image, height: 80),
+                      CachedNetworkImage(
+                        imageUrl: product.image,
+                        height: 80,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
+                      ),
                       const SizedBox(height: 12),
-                      Text(product.name,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 6),
-                      Text('₹${product.price}',
-                      
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold)),
+                      Text(
+                        product.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 6),
                       Text(
-                        product.stock > 0
-                            ? 'In Stock'
-                            : 'Out of Stock',
+                        '₹${product.price}',
+
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        product.stock > 0 ? 'In Stock' : 'Out of Stock',
                         style: TextStyle(
                           fontSize: 12,
-                          color: product.stock > 0
-                              ? Colors.green
-                              : Colors.red,
+                          color: product.stock > 0 ? Colors.green : Colors.red,
                         ),
                       ),
                     ],
@@ -1431,8 +1431,7 @@ Future<void> checkoutCart(
       context: context,
       builder: (_) => Dialog(
         insetPadding: const EdgeInsets.all(24),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: SingleChildScrollView(
           child: Column(
             children: [
@@ -1445,38 +1444,52 @@ Future<void> checkoutCart(
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Image.network(product.image, height: 180),
+                child: CachedNetworkImage(
+                  imageUrl: product.image,
+                  height: 180,
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
               ),
-              Text(product.name,
-                  style: const TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.w600)),
+              Text(
+                product.name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text('₹${product.price}',
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                '₹${product.price}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               if (product.stock <= 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                     'Out of Stock',
-                      style: TextStyle(
-                        color: Colors.red.shade600,
-                        fontWeight: FontWeight.w600,
-                       ),
-                   ) ,
+                    'Out of Stock',
+                    style: TextStyle(
+                      color: Colors.red.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('About this product',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text(
+                      'About this product',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     const SizedBox(height: 8),
-                    ...product.details
-                        .map((e) => Text('• $e'))
-                        ,
+                    ...product.details.map((e) => Text('• $e')),
                   ],
                 ),
               ),
@@ -1487,35 +1500,34 @@ Future<void> checkoutCart(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-  onPressed: product.stock <= 0
-      ? null
-      : () {
-          addToCart(product);
-          Navigator.pop(context);
-        },
-  child: const Text('Add to Cart'),
-),
-
+                        onPressed: product.stock <= 0
+                            ? null
+                            : () {
+                                addToCart(product);
+                                Navigator.pop(context);
+                              },
+                        child: const Text('Add to Cart'),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-  style: ElevatedButton.styleFrom(
-    backgroundColor:
-        product.stock > 0 ? Colors.black : Colors.grey,
-  ),
-  onPressed: product.stock <= 0
-      ? null
-      : () {
-          Navigator.pop(context);
-          _showDeliverySheet(product);
-        },
-  child: const Text(
-    'Buy Now',
-    style: TextStyle(color: Colors.white),
-  ),
-),
-
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: product.stock > 0
+                              ? Colors.black
+                              : Colors.grey,
+                        ),
+                        onPressed: product.stock <= 0
+                            ? null
+                            : () {
+                                Navigator.pop(context);
+                                _showDeliverySheet(product);
+                              },
+                        child: const Text(
+                          'Buy Now',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1533,23 +1545,24 @@ Future<void> checkoutCart(
   /// =====================
   void _showDeliverySheet(Product product) {
     if (product.stock <= 0) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Product is out of stock')),
-  );
-  return;
-}
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Product is out of stock')));
+      return;
+    }
 
     final nameCtrl = TextEditingController();
     final addressCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) => Dialog(
           insetPadding: const EdgeInsets.all(24),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24)),
+            borderRadius: BorderRadius.circular(24),
+          ),
           backgroundColor: Colors.white,
           child: SingleChildScrollView(
             child: Column(
@@ -1571,7 +1584,11 @@ Future<void> checkoutCart(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      const Icon(Icons.local_shipping, color: Colors.white, size: 32),
+                      const Icon(
+                        Icons.local_shipping,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                       const SizedBox(height: 12),
                       const Text(
                         'Delivery Details',
@@ -1584,10 +1601,7 @@ Future<void> checkoutCart(
                       const SizedBox(height: 4),
                       const Text(
                         'Complete your delivery information',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
                       ),
                     ],
                   ),
@@ -1746,8 +1760,7 @@ Future<void> checkoutCart(
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.all(24),
         child: Padding(
@@ -1903,10 +1916,7 @@ Future<void> checkoutCart(
                 decoration: BoxDecoration(
                   color: Colors.amber.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.amber.shade200,
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.amber.shade200, width: 1),
                 ),
                 child: Row(
                   children: [
@@ -1957,209 +1967,204 @@ Future<void> checkoutCart(
       ),
     );
   }
-/// =====================
-/// ORDER CONFIRMATION (cart checkout) 
-/// =====================
-void _showBulkOrderConfirmed(String address) {
-  showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.all(24),
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 🎉 Success Animation
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+
+  /// =====================
+  /// ORDER CONFIRMATION (cart checkout)
+  /// =====================
+  void _showBulkOrderConfirmed(String address) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.all(24),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 🎉 Success Animation
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green.shade400, Colors.green.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                color: Colors.white,
-                size: 56,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Order Placed Successfully!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'All ${cart.length} items have been ordered',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Delivery Info Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFDF6F9),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.pink.withOpacity(0.2),
-                  width: 1.5,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 56,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.local_shipping_outlined,
-                        color: Colors.blue.shade600,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Delivery Information',
+              const SizedBox(height: 24),
+              const Text(
+                'Order Placed Successfully!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'All ${cart.length} items have been ordered',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Delivery Info Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDF6F9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.pink.withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          color: Colors.blue.shade600,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Delivery Information',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          color: Colors.blue.shade600,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Delivery Address',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                address,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.verified_outlined,
+                      color: Colors.green.shade700,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Track your orders in "My Orders" section',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        color: Colors.blue.shade600,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Delivery Address',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              address,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Info Box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.green.shade200,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.verified_outlined,
-                    color: Colors.green.shade700,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Track your orders in "My Orders" section',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Continue Shopping',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Continue Shopping',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   /// =====================
   /// CART POPUP
   /// =====================
   void _showCartPopup() {
     if (cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your cart is empty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Your cart is empty')));
       return;
     }
 
@@ -2168,8 +2173,9 @@ void _showBulkOrderConfirmed(String address) {
       builder: (_) {
         return Dialog(
           insetPadding: const EdgeInsets.all(24),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           backgroundColor: Colors.white,
           child: SingleChildScrollView(
             child: Column(
@@ -2223,7 +2229,7 @@ void _showBulkOrderConfirmed(String address) {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${cart.fold<int>(0, (sum, item) => sum + item.quantity)} items',
+                          '${cart.fold<int>(0, (total, item) => total + item.quantity)} items',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -2269,15 +2275,22 @@ void _showBulkOrderConfirmed(String address) {
                                           color: Colors.grey.shade200,
                                         ),
                                       ),
-                                      child: Image.network(
-                                        p.image,
+                                      child: CachedNetworkImage(
+                                        imageUrl: p.image,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Center(
-                                          child: Icon(
-                                            Icons.shopping_bag_outlined,
-                                            color: Colors.grey.shade400,
-                                          ),
-                                        ),
+                                        placeholder: (context, url) =>
+                                            const Center(
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            const Center(
+                                              child: Icon(
+                                                Icons.shopping_bag_outlined,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -2366,8 +2379,9 @@ void _showBulkOrderConfirmed(String address) {
                                           InkWell(
                                             onTap: item.quantity < p.stock
                                                 ? () {
-                                                    setState(() =>
-                                                        item.quantity++);
+                                                    setState(
+                                                      () => item.quantity++,
+                                                    );
                                                   }
                                                 : null,
                                             child: Padding(
@@ -2390,7 +2404,7 @@ void _showBulkOrderConfirmed(String address) {
                             ),
                           ),
                         );
-                      }).toList(), // ✅ Added .toList()
+                      }), // ✅ Added .toList()
                     ],
                   ),
                 ),
@@ -2406,13 +2420,10 @@ void _showBulkOrderConfirmed(String address) {
                         children: [
                           const Text(
                             'Subtotal',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Text(
-                            '\u20b9${cart.fold<int>(0, (sum, item) => sum + item.totalPrice)}',
+                            '\u20b9${cart.fold<int>(0, (total, item) => total + item.totalPrice)}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -2426,10 +2437,7 @@ void _showBulkOrderConfirmed(String address) {
                         children: [
                           const Text(
                             'Delivery',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Text(
                             'Free',
@@ -2455,7 +2463,7 @@ void _showBulkOrderConfirmed(String address) {
                             ),
                           ),
                           Text(
-                            '\u20b9${cart.fold<int>(0, (sum, item) => sum + item.totalPrice)}',
+                            '\u20b9${cart.fold<int>(0, (total, item) => total + item.totalPrice)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -2503,257 +2511,254 @@ void _showBulkOrderConfirmed(String address) {
     ); // ✅ Fixed: Added missing closing parenthesis
   }
 
-/// =====================
-/// show cart delivery sheet
-/// =====================
+  /// =====================
+  /// show cart delivery sheet
+  /// =====================
 
-void _showCartDeliverySheet() {
-  final nameCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
+  void _showCartDeliverySheet() {
+    final nameCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (_) {
-      return Dialog(
-        insetPadding: const EdgeInsets.all(24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-          children: [
-            // 🎀 Gradient Header
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.local_shipping,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Delivery Details',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 🎀 Gradient Header
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Complete your delivery information',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Order Summary Preview
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFDF6F9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.pink.withOpacity(0.2),
-                        width: 1.5,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.local_shipping,
+                        color: Colors.white,
+                        size: 32,
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Order Summary',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Delivery Details',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Complete your delivery information',
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Order Summary Preview
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFDF6F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.pink.withOpacity(0.2),
+                            width: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ...List.generate(
-                          cart.length > 3 ? 3 : cart.length,
-                          (index) {
-                            final item = cart[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${item.product.name} × ${item.quantity}',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '₹${item.totalPrice}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                        if (cart.length > 3)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              '+${cart.length - 3} more items',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Total',
+                              'Order Summary',
                               style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
                               ),
                             ),
-                            Text(
-                              '₹${cart.fold<int>(0, (sum, item) => sum + item.totalPrice)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF7C3AED),
+                            const SizedBox(height: 12),
+                            ...List.generate(cart.length > 3 ? 3 : cart.length, (
+                              index,
+                            ) {
+                              final item = cart[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${item.product.name} × ${item.quantity}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '₹${item.totalPrice}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            if (cart.length > 3)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  '+${cart.length - 3} more items',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            const Divider(height: 1),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  '₹${cart.fold<int>(0, (total, item) => total + item.totalPrice)}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF7C3AED),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _field(nameCtrl, 'Full Name'),
+                      const SizedBox(height: 12),
+                      _field(addressCtrl, 'Delivery Address', max: 3),
+                      const SizedBox(height: 12),
+                      _field(phoneCtrl, 'Phone Number'),
+                      const SizedBox(height: 20),
+                      // Payment Info Badge
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue.shade700,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Pay on delivery - No prepayment needed',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _field(nameCtrl, 'Full Name'),
-                  const SizedBox(height: 12),
-                  _field(addressCtrl, 'Delivery Address', max: 3),
-                  const SizedBox(height: 12),
-                  _field(phoneCtrl, 'Phone Number'),
-                  const SizedBox(height: 20),
-                  // Payment Info Badge
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.blue.shade200,
-                        width: 1,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.blue.shade700,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Pay on delivery - No prepayment needed',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          onPressed: isProcessing
+                              ? null
+                              : () async {
+                                  Navigator.pop(context);
+                                  await checkoutCart(
+                                    nameCtrl.text.trim(),
+                                    addressCtrl.text.trim(),
+                                    phoneCtrl.text.trim(),
+                                  );
+                                },
+                          child: isProcessing
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Confirm & Pay on Delivery',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
-                      onPressed: isProcessing
-                          ? null
-                          : () async {
-                              Navigator.pop(context);
-                              await checkoutCart(
-                                nameCtrl.text.trim(),
-                                addressCtrl.text.trim(),
-                                phoneCtrl.text.trim(),
-                              );
-                            },
-                      child: isProcessing
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Confirm & Pay on Delivery',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ));
-    }
-  );
-}
+          ),
+        );
+      },
+    );
+  }
 
   /// =====================
   /// TEXT FIELD
@@ -2764,10 +2769,8 @@ void _showCartDeliverySheet() {
       maxLines: max,
       decoration: InputDecoration(
         labelText: label,
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 }
-

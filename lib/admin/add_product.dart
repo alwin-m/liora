@@ -223,12 +223,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }*/
+/*
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+
+// 🔥 CLOUDINARY CONFIG (ADD HERE)
+const String cloudName = 'YOUR_CLOUD_NAME';
+const String uploadPreset = 'YOUR_UPLOAD_PRESET';
+
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -581,6 +587,216 @@ class _AddProductScreenState extends State<AddProductScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
+      ),
+    );
+  }
+}
+*/
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+
+// 🔥 PUT YOUR CLOUDINARY DETAILS HERE
+const String cloudName = 'ddr1p1mv7';
+const String uploadPreset = 'products_unsigned';
+
+
+class AddProductScreen extends StatefulWidget {
+  const AddProductScreen({super.key});
+
+  @override
+  State<AddProductScreen> createState() => _AddProductScreenState();
+}
+
+class _AddProductScreenState extends State<AddProductScreen> {
+  final nameController = TextEditingController();
+  final priceController = TextEditingController();
+  final descController = TextEditingController();
+  final stockController = TextEditingController();
+  final imageUrlController = TextEditingController();
+
+  bool trending = false;
+  bool loading = false;
+
+  Uint8List? imageBytes;
+  final ImagePicker picker = ImagePicker();
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    priceController.dispose();
+    descController.dispose();
+    stockController.dispose();
+    imageUrlController.dispose();
+    super.dispose();
+  }
+
+  // 📸 Pick image
+  Future<void> pickImage() async {
+    try {
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() => imageBytes = bytes);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Image pick error: $e')));
+    }
+  }
+
+  // ☁️ Upload to Cloudinary
+  Future<String> uploadToCloudinary(Uint8List imageBytes) async {
+    final uri = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+    );
+
+    final request = http.MultipartRequest('POST', uri)
+      ..fields['upload_preset'] = uploadPreset
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: 'product.jpg',
+        ),
+      );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final resStr = await response.stream.bytesToString();
+      final data = jsonDecode(resStr);
+      return data['secure_url']; // 🔥 image URL
+    } else {
+      throw Exception('Cloudinary upload failed');
+    }
+  }
+
+  // ➕ Add product
+  Future<void> addProduct() async {
+    if (nameController.text.isEmpty ||
+        priceController.text.isEmpty ||
+        stockController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fill all required fields')),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+
+    try {
+      String imageUrl = imageUrlController.text.trim();
+
+      // 🔥 Upload to Cloudinary if image selected
+      if (imageBytes != null && imageBytes!.isNotEmpty) {
+        imageUrl = await uploadToCloudinary(imageBytes!);
+      }
+
+      await FirebaseFirestore.instance.collection('products').add({
+        'name': nameController.text.trim(),
+        'price': int.parse(priceController.text.trim()),
+        'details': [descController.text.trim()],
+        'stock': int.parse(stockController.text.trim()),
+        'image': imageUrl.isEmpty
+            ? 'https://via.placeholder.com/300x200?text=No+Image'
+            : imageUrl,
+        'trending': trending,
+        'createdAt': Timestamp.now(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Product added')));
+
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Add Product"),
+        backgroundColor: Colors.pinkAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // 🖼 Pick image
+            GestureDetector(
+              onTap: loading ? null : pickImage,
+              child: Container(
+                height: 160,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.grey.shade200,
+                  border: Border.all(color: Colors.pinkAccent),
+                ),
+                child: imageBytes == null
+                    ? const Icon(Icons.add_a_photo,
+                        size: 40, color: Colors.pinkAccent)
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.memory(imageBytes!, fit: BoxFit.cover),
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            _field(nameController, "Product name"),
+            const SizedBox(height: 12),
+            _field(priceController, "Price", isNumber: true),
+            const SizedBox(height: 12),
+            _field(stockController, "Stock", isNumber: true),
+            const SizedBox(height: 12),
+            _field(descController, "Description"),
+            const SizedBox(height: 12),
+            _field(imageUrlController, "Or paste image URL (optional)"),
+
+            SwitchListTile(
+              value: trending,
+              onChanged: (v) => setState(() => trending = v),
+              title: const Text("Trending product"),
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: loading ? null : addProduct,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.pinkAccent,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: loading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Add Product"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _field(TextEditingController c, String label,
+      {bool isNumber = false}) {
+    return TextField(
+      controller: c,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

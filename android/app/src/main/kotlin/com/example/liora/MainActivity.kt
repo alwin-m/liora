@@ -1,4 +1,4 @@
-package com.example.lioraa
+package com.example.liora
 
 import io.flutter.embedding.android.FlutterActivity
 

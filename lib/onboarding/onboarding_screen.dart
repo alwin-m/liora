@@ -43,10 +43,13 @@ class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: lastPeriodDate ?? DateTime.now(), // ✅ crash safe
-        cycleLength: cycleLength,
-        periodLength: periodLength,
+      // 🔄 Set algorithm using reactive method
+      CycleSession.setAlgorithm(
+        CycleAlgorithm(
+          lastPeriod: lastPeriodDate ?? DateTime.now(), // ✅ crash safe
+          cycleLength: cycleLength,
+          periodLength: periodLength,
+        ),
       );
 
       // 🔥 SAVE TO FIRESTORE

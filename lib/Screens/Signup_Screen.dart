@@ -176,11 +176,11 @@ class _SignupScreenState extends State<SignupScreen> {
       });
 
       // 🔥 IMPORTANT FIX: initialize global cycle engine AFTER Firestore completes
-      CycleSession.algorithm = CycleAlgorithm(
+      CycleSession.setAlgorithm(CycleAlgorithm(
         lastPeriod: DateTime.now().subtract(const Duration(days: 14)),
         cycleLength: 28,
         periodLength: 5,
-      );
+      ));
 
       Navigator.pushReplacement(
         context,
@@ -383,53 +383,53 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> signup() async {
     if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
       return;
     }
 
     try {
       setState(() => isLoading = true);
 
-      UserCredential userCred =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      UserCredential userCred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCred.user!.uid)
           .set({
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'createdAt': Timestamp.now(),
+            'name': nameController.text.trim(),
+            'email': emailController.text.trim(),
+            'createdAt': Timestamp.now(),
 
-        // 🔥 REQUIRED FOR ROLE-BASED FLOW
-        'role': 'user',
+            // 🔥 REQUIRED FOR ROLE-BASED FLOW
+            'role': 'user',
 
-        // 🔥 REQUIRED FOR ONBOARDING GATE
-        'profileCompleted': false,
-      });
+            // 🔥 REQUIRED FOR ONBOARDING GATE
+            'profileCompleted': false,
+          });
 
       // 🔥 IMPORTANT FIX: initialize global cycle engine AFTER Firestore completes
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime.now().subtract(const Duration(days: 14)),
-        cycleLength: 28,
-        periodLength: 5,
+      CycleSession.setAlgorithm(
+        CycleAlgorithm(
+          lastPeriod: DateTime.now().subtract(const Duration(days: 14)),
+          cycleLength: 28,
+          periodLength: 5,
+        ),
       );
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const OnboardingQuestionsScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const OnboardingQuestionsScreen()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => isLoading = false);
     }
@@ -457,10 +457,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
               Text(
                 'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
               ),
               const SizedBox(height: 40),
 

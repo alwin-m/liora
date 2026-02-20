@@ -1007,14 +1007,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool periodAlerts = true;
   bool cartUpdates = false;
 
-  late final CycleAlgorithm algo;
   String userName = 'User';
-  int _settingsTabIndex = 0; // 0 = Settings, 1 = About
+  int _settingsTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    algo = CycleSession.algorithm;
     _fetchUserName();
   }
 
@@ -1261,6 +1259,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<CycleAlgorithm>(
+      valueListenable: CycleSession.algorithmNotifier,
+      builder: (context, algo, _) => _buildProfileUI(algo),
+    );
+  }
+
+  Widget _buildProfileUI(CycleAlgorithm algo) {
     final now = DateTime.now();
     final todayText = 'Today · ${now.day} ${_month(now.month)} ${now.year}';
 

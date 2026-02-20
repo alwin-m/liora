@@ -53,11 +53,16 @@ import 'admin/add_product.dart';
 import 'admin/view_products.dart';
 import 'admin/manage_users.dart';
 
+// 🔄 CYCLE SESSION (REACTIVE STATE)
+import 'core/cycle_session.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  // 🔄 Initialize reactive cycle session FIRST
+  CycleSession.initialize();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 

@@ -16,23 +16,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  late CycleAlgorithm algo;
-
   final List<String> months = const [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    // ✅ SAME ENGINE AS HOME
-    algo = CycleSession.algorithm;
-
-    selectedDay = DateTime.now();
-    focusedDay = DateTime.now();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,14 +53,19 @@ class _TrackerScreenState extends State<TrackerScreen> {
         title: _monthYearToggle(),
       ),
 
-      body: Column(
-        children: [
-          isMonth ? _monthCalendar() : _yearCalendar(),
-          const SizedBox(height: 8),
-          _editPeriodButton(),
-          const SizedBox(height: 8),
-          _bottomCard(),
-        ],
+      body: ValueListenableBuilder<CycleAlgorithm>(
+        valueListenable: CycleSession.algorithmNotifier,
+        builder: (context, algo, _) {
+          return Column(
+            children: [
+              isMonth ? _monthCalendar(algo) : _yearCalendar(),
+              const SizedBox(height: 8),
+              _editPeriodButton(algo),
+              const SizedBox(height: 8),
+              _bottomCard(algo),
+            ],
+          );
+        },
       ),
     );
   }
@@ -111,7 +113,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   // 📅 Month Calendar
-  Widget _monthCalendar() {
+  Widget _monthCalendar(CycleAlgorithm algo) {
     return TableCalendar(
       focusedDay: focusedDay,
       firstDay: DateTime.utc(2020),
@@ -124,7 +126,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         });
       },
       calendarBuilders: CalendarBuilders(
-        defaultBuilder: (_, day, __) => _dayCell(day),
+        defaultBuilder: (_, day, __) => _dayCell(day, algo),
         todayBuilder: (_, day, __) => _todayCell(day),
         selectedBuilder: (_, day, __) => _todayCell(day),
       ),
@@ -172,7 +174,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   // 🎨 Day Cell
-  Widget _dayCell(DateTime day) {
+  Widget _dayCell(DateTime day, CycleAlgorithm algo) {
     final DayType type = algo.getType(day);
 
     Color? borderColor;
@@ -200,10 +202,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
               : null,
         ),
         child: Center(
-          child: Text(
-            "${day.day}",
-            style: TextStyle(color: textColor),
-          ),
+          child: Text("${day.day}", style: TextStyle(color: textColor)),
         ),
       ),
     );
@@ -229,21 +228,19 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   // ✏️ EDIT PERIOD BUTTON (WORKING)
-  Widget _editPeriodButton() {
+  Widget _editPeriodButton(CycleAlgorithm algo) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color.fromARGB(255, 222, 120, 154),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      onPressed: _editLastPeriodDate,
+      onPressed: () => _editLastPeriodDate(algo),
       child: const Text("Edit period dates"),
     );
   }
 
   // 🔥 EDIT LAST PERIOD DATE LOGIC
-  Future<void> _editLastPeriodDate() async {
+  Future<void> _editLastPeriodDate(CycleAlgorithm algo) async {
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: algo.lastPeriod,
@@ -253,32 +250,30 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     if (pickedDate == null) return;
 
-    setState(() {
-      // 🔄 Rebuild cycle engine safely
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-        ),
-        cycleLength: algo.cycleLength,
-        periodLength: algo.periodLength,
-      );
+    // 🔄 Update cycle engine and notify ALL listeners
+    final newAlgorithm = CycleAlgorithm(
+      lastPeriod: DateTime(pickedDate.year, pickedDate.month, pickedDate.day),
+      cycleLength: algo.cycleLength,
+      periodLength: algo.periodLength,
+    );
 
-      algo = CycleSession.algorithm;
+    CycleSession.setAlgorithm(newAlgorithm);
+
+    // 💾 Save to Firestore
+    await CycleSession.saveToFirestore();
+
+    setState(() {
       selectedDay = pickedDate;
       focusedDay = pickedDate;
     });
   }
 
   // 📊 Bottom Info Card (Cycle Day)
-  Widget _bottomCard() {
-    final int diff =
-        selectedDay.difference(algo.lastPeriod).inDays;
+  Widget _bottomCard(CycleAlgorithm algo) {
+    final int diff = selectedDay.difference(algo.lastPeriod).inDays;
 
     final int safeDiff =
-        ((diff % algo.cycleLength) + algo.cycleLength) %
-            algo.cycleLength;
+        ((diff % algo.cycleLength) + algo.cycleLength) % algo.cycleLength;
 
     final int cycleDay = safeDiff + 1;
 
@@ -288,9 +283,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -302,7 +295,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           const CircleAvatar(
             backgroundColor: Colors.grey,
             child: Icon(Icons.close, color: Colors.white),
-          )
+          ),
         ],
       ),
     );

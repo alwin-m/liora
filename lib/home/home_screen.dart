@@ -310,25 +310,6 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  late CycleAlgorithm _algo;
-
-  @override
-  void initState() {
-    super.initState();
-    // ✅ Initialize with safe default if not set
-    try {
-      _algo = CycleSession.algorithm;
-    } catch (e) {
-      _algo = CycleAlgorithm(
-        lastPeriod: DateTime.now(),
-        cycleLength: 28,
-        periodLength: 5,
-      );
-    }
-  }
-
-  CycleAlgorithm get algo => _algo;
-
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -374,24 +355,29 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= HOME UI =================
 
   Widget _homeUI() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _title(),
-            const SizedBox(height: 20),
-            _calendarCard(),
-            const SizedBox(height: 24),
-            _nextPeriodCard(),
-            const SizedBox(height: 24),
-            _recommendedTitle(),
-            const SizedBox(height: 12),
-            _recommendedProducts(),
-          ],
-        ),
-      ),
+    return ValueListenableBuilder<CycleAlgorithm>(
+      valueListenable: CycleSession.algorithmNotifier,
+      builder: (context, algo, _) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _title(),
+                const SizedBox(height: 20),
+                _calendarCard(algo),
+                const SizedBox(height: 24),
+                _nextPeriodCard(algo),
+                const SizedBox(height: 24),
+                _recommendedTitle(),
+                const SizedBox(height: 12),
+                _recommendedProducts(),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -409,7 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= CALENDAR =================
 
-  Widget _calendarCard() {
+  Widget _calendarCard(CycleAlgorithm algo) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -480,7 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= NEXT PERIOD =================
 
-  Widget _nextPeriodCard() {
+  Widget _nextPeriodCard(CycleAlgorithm algo) {
     final nextPeriod = algo.getNextPeriodDate();
     final endPeriod = nextPeriod.add(Duration(days: algo.periodLength - 1));
 

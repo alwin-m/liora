@@ -1,7 +1,7 @@
 // Modernized Login Screen for Liora (v2)
 // Feminine, calm, premium UI inspired by iOS + Android Material You
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -264,4 +264,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+   
+
 

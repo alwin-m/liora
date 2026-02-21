@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lioraa/core/app_theme.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   const MyOrdersScreen({super.key});
 
   Future<void> _cancelOrder({
+    required BuildContext context,
     required String orderId,
     required String productId,
     required int quantity,
@@ -13,61 +17,66 @@ class MyOrdersScreen extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final db = FirebaseFirestore.instance;
 
-    final orderRef =
-        db.collection('users').doc(uid).collection('orders').doc(orderId);
+    final orderRef = db
+        .collection('users')
+        .doc(uid)
+        .collection('orders')
+        .doc(orderId);
     final productRef = db.collection('products').doc(productId);
 
-    await db.runTransaction((transaction) async {
-      final productSnap = await transaction.get(productRef);
-      if (!productSnap.exists) return;
+    try {
+      await db.runTransaction((transaction) async {
+        final productSnap = await transaction.get(productRef);
+        if (!productSnap.exists) throw Exception('Product data missing');
 
-      final currentStock = productSnap['stock'] ?? 0;
+        final currentStock = (productSnap.data()?['stock'] ?? 0) as int;
 
-      // Restore stock by quantity
-      transaction.update(productRef, {
-        'stock': currentStock + quantity,
+        transaction.update(productRef, {'stock': currentStock + quantity});
+
+        transaction.update(orderRef, {
+          'status': 'cancelled',
+          'cancelledAt': FieldValue.serverTimestamp(),
+        });
       });
 
-      // Mark order as cancelled
-      transaction.update(orderRef, {
-        'status': 'cancelled',
-        'cancelledAt': Timestamp.now(),
-      });
-    });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Order cancelled successfully'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final cs = Theme.of(context).colorScheme;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Please log in')));
+    }
 
     return Scaffold(
+      backgroundColor: cs.surface,
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
+        title: Text(
           'My Orders',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
-      backgroundColor: const Color(0xFFFDF6F9),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
-            .doc(uid)
+            .doc(user.uid)
             .collection('orders')
             .orderBy('createdAt', descending: true)
             .snapshots(),
@@ -77,285 +86,242 @@ class MyOrdersScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.shopping_bag_outlined,
-                    size: 80,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No orders yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start shopping to see your orders here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return _buildEmptyState(context, cs);
           }
 
           final orders = snapshot.data!.docs;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(LioraTheme.space24),
+            physics: const BouncingScrollPhysics(),
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final doc = orders[index];
               final data = doc.data() as Map<String, dynamic>;
-
-              final productName = data['productName'] ?? 'Product';
-              final price = data['price'] ?? 0;
-              final quantity = (data['quantity'] ?? 1) as int;
-              final status = data['status'] ?? 'placed';
-              final productId = data['productId'];
-              final createdAt = (data['createdAt'] as Timestamp).toDate();
-              final imageUrl = data['imageUrl'] ?? '';
-              final fullName = data['fullName'] ?? '';
-              final address = data['address'] ?? '';
-
-              final isPlaced = status == 'placed';
-              final statusColor = isPlaced ? Colors.green : Colors.red;
-              final statusIcon = isPlaced ? Icons.check_circle : Icons.cancel;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (imageUrl.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        child: Image.network(
-                          imageUrl,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            height: 180,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.image_not_supported),
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Order #${doc.id.substring(0, 8).toUpperCase()}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            productName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '₹${price.toString()}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF7C3AED),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'Qty: $quantity',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (address.isNotEmpty)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Delivery to: $fullName',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  address,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: statusColor.withOpacity(0.3),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      statusIcon,
-                                      size: 16,
-                                      color: statusColor,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      status.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: statusColor,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (isPlaced)
-                                TextButton.icon(
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (_) => AlertDialog(
-                                        title: const Text('Cancel Order'),
-                                        content: Text(
-                                          'Cancel "$productName"?\nStock will be restored.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: const Text('Keep It'),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                            ),
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: const Text('Yes, Cancel'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirm == true) {
-                                      try {
-                                        await _cancelOrder(
-                                          orderId: doc.id,
-                                          productId: productId,
-                                          quantity: quantity,
-                                        );
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Order cancelled, stock restored',
-                                            ),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Failed to cancel: $e',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  icon: const Icon(Icons.close, size: 18),
-                                  label: const Text('Cancel'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              return _OrderCard(
+                orderId: doc.id,
+                data: data,
+                onCancel: () => _cancelOrder(
+                  context: context,
+                  orderId: doc.id,
+                  productId: data['productId'],
+                  quantity: (data['quantity'] ?? 1) as int,
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 80,
+            color: cs.onSurface.withAlpha(40),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Your shopping bag is empty',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Explore our collections to start your routine',
+            style: TextStyle(color: cs.onSurface.withAlpha(120)),
+          ),
+          const SizedBox(height: 32),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Go to Shop'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  final String orderId;
+  final Map<String, dynamic> data;
+  final VoidCallback onCancel;
+
+  const _OrderCard({
+    required this.orderId,
+    required this.data,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final status = data['status'] ?? 'placed';
+    final isPlaced = status == 'placed';
+    final createdAt =
+        (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: LioraTheme.space16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withAlpha(8),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(LioraTheme.space16),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(LioraTheme.radiusSmall),
+                  child: CachedNetworkImage(
+                    imageUrl: data['imageUrl'] ?? '',
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Container(
+                      color: cs.surfaceContainerHighest,
+                      child: const Icon(Icons.image_not_supported),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['productName'] ?? 'Product',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ordered on ${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurface.withAlpha(120),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹${data['price']} • Qty: ${data['quantity'] ?? 1}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LioraTheme.space16,
+              vertical: LioraTheme.space8,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _StatusBadge(status: status),
+                if (isPlaced)
+                  TextButton.icon(
+                    onPressed: () => _confirmCancel(context),
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('Cancel'),
+                    style: TextButton.styleFrom(foregroundColor: cs.error),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmCancel(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: const Text(
+          'Are you sure you want to cancel this order? Stock will be restored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep it'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Cancel Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) onCancel();
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isPlaced = status == 'placed';
+    final color = isPlaced ? Colors.green : cs.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withAlpha(60)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPlaced ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }

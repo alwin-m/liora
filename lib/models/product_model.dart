@@ -5,6 +5,7 @@ class Product {
   final int stock;
   final String imageUrl;
   final bool trending;
+  final List<String> details;
 
   Product({
     required this.id,
@@ -13,16 +14,23 @@ class Product {
     required this.stock,
     required this.imageUrl,
     required this.trending,
+    this.details = const [],
   });
 
   factory Product.fromMap(String id, Map<String, dynamic> data) {
     return Product(
       id: id,
-      name: data['name'],
-      price: data['price'],
-      stock: data['stock'],
-      imageUrl: data['imageUrl'],
+      name: data['name'] ?? 'Unnamed Product',
+      price: (data['price'] ?? 0) as int,
+      stock: (data['stock'] ?? 0) as int,
+      imageUrl:
+          data['imageUrl'] ??
+          data['image'] ??
+          'https://via.placeholder.com/300x200?text=No+Image',
       trending: data['trending'] ?? false,
+      details: data['details'] != null
+          ? List<String>.from(data['details'])
+          : <String>[],
     );
   }
 
@@ -33,6 +41,7 @@ class Product {
       'stock': stock,
       'imageUrl': imageUrl,
       'trending': trending,
+      'details': details,
     };
   }
 }

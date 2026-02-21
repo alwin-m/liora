@@ -1,91 +1,69 @@
-/*import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'Screens/Splash_Screen.dart';
-import 'Screens/Signup_Screen.dart';
-import 'Screens/Login_Screen.dart'; // ✅ ADDED
-import 'home/Home_Screen.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Liora',
-      theme: ThemeData(primarySwatch: Colors.pink),
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/login': (context) => const LoginScreen(), // ✅ ADDED
-
-        // ✅ HomeScreen has NO parameters now
-        '/home': (context) => const HomeScreen(),
-      },
-    );
-  }
-}*/
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:provider/provider.dart';
 
-// 🔹 AUTH & USER SCREENS
+import 'firebase_options.dart';
+import 'core/app_theme.dart';
+
+// Screens
 import 'Screens/Splash_Screen.dart';
 import 'Screens/Signup_Screen.dart';
 import 'Screens/Login_Screen.dart';
 import 'home/Home_Screen.dart';
-
-// 🔹 ONBOARDING (🔥 MISSING BEFORE)
 import 'onboarding/onboarding_screen.dart';
 
-// 🔹 ADMIN SCREENS
+// Admin
 import 'admin/admin_dashboard.dart';
 import 'admin/add_product.dart';
 import 'admin/view_products.dart';
 import 'admin/manage_users.dart';
 
-// 🔄 CYCLE SESSION (REACTIVE STATE)
-import 'core/cycle_session.dart';
+// Providers
+import 'services/cart_provider.dart';
+import 'services/cycle_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔄 Initialize reactive cycle session FIRST
-  CycleSession.initialize();
+  // Low-glare immersive display for luxury feel
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: LioraTheme.offWhiteWarm,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => CycleProvider()),
+      ],
+      child: const LioraApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class LioraApp extends StatelessWidget {
+  const LioraApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liora',
-      theme: ThemeData(primarySwatch: Colors.pink),
-
+      theme: LioraTheme.lightTheme,
       routes: {
         '/': (context) => const SplashScreen(),
         '/signup': (context) => const SignupScreen(),
         '/login': (context) => const LoginScreen(),
-
-        // USER
         '/home': (context) => const HomeScreen(),
         '/onboarding': (context) => const OnboardingQuestionsScreen(),
-
-        // ADMIN
         '/admin': (context) => const AdminDashboard(),
         '/addProduct': (context) => const AddProductScreen(),
         '/viewProducts': (context) => const ViewProductsScreen(),

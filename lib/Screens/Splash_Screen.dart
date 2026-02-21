@@ -1,148 +1,11 @@
-/*import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-
-    Timer(const Duration(seconds: 2), () {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        // FIRST TIME USER
-        Navigator.pushReplacementNamed(context, '/signup');
-      } else {
-        // USER ALREADY LOGGED IN
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFFBEAFF),
-      body: Center(
-        child: Icon(Icons.favorite, size: 80, color: Colors.pinkAccent),
-      ),
-    );
-  }
-}*/
-/*import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // 🎬 Animation controller
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
-
-    _controller.forward();
-
-    // ⏱ Navigation after splash
-    Timer(const Duration(seconds: 3), () {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (!mounted) return;
-
-      if (user == null) {
-        Navigator.pushReplacementNamed(context, '/signup');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFBEAFF),
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.favorite,
-                    size: 80, color: Colors.pinkAccent),
-                const SizedBox(height: 20),
-                Text(
-                  'Liora',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'care for your rhythm',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.black54,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-*/
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 🔥 ADDED
-import '../core/cycle_session.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../services/cycle_provider.dart';
+import '../core/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -152,104 +15,191 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+    with TickerProviderStateMixin {
+  late final AnimationController _logoController;
+  late final AnimationController _fadeOutController;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _fadeOutAnim;
+  late final Animation<double> _subtitleSlideAnim;
 
   @override
   void initState() {
     super.initState();
 
-    // 🎬 Animation controller
-    _controller = AnimationController(
+    // Logo entrance animation (fast)
+    _logoController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _scaleAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
+    );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
+      ),
+    );
 
-    _controller.forward();
+    _subtitleSlideAnim = Tween<double>(begin: 12.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+      ),
+    );
 
-    // ⏱ Navigation after splash (🔥 UPDATED LOGIC)
-    Timer(const Duration(seconds: 3), () async {
+    // Exit animation
+    _fadeOutController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeOutAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _fadeOutController, curve: Curves.easeIn),
+    );
+
+    _logoController.forward();
+
+    // Begin navigation logic immediately (splash is purely cosmetic)
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    // Give the logo animation time to breathe (min 900ms)
+    final stopwatch = Stopwatch()..start();
+
+    String route = '/login';
+
+    try {
       final user = FirebaseAuth.instance.currentUser;
 
-      if (!mounted) return;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
 
-      // 🔹 Not logged in
-      if (user == null) {
-        Navigator.pushReplacementNamed(context, '/login');
-        return;
+        final role = doc.data()?['role'] ?? 'user';
+        final profileCompleted = doc.data()?['profileCompleted'] ?? false;
+
+        if (role == 'admin') {
+          route = '/admin';
+        } else if (profileCompleted) {
+          // Pre-load cycle data in parallel
+          if (mounted) {
+            await Provider.of<CycleProvider>(context, listen: false).loadData();
+          }
+          route = '/home';
+        } else {
+          route = '/onboarding';
+        }
       }
+    } catch (_) {
+      route = '/login';
+    }
 
-      // 🔹 Logged in → check role & profile
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+    // Ensure minimum splash duration for smooth UX
+    final elapsed = stopwatch.elapsedMilliseconds;
+    if (elapsed < 900) {
+      await Future.delayed(Duration(milliseconds: 900 - elapsed));
+    }
 
-      final role = doc.data()?['role'] ?? 'user';
-      final profileCompleted = doc.data()?['profileCompleted'] ?? false;
+    if (!mounted) return;
 
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else if (profileCompleted) {
-        // 🔥 Load cycle data before going home
-        await CycleSession.loadFromFirestore();
-        if (mounted) Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        Navigator.pushReplacementNamed(context, '/onboarding');
-      }
-    });
+    // Smooth fade out before navigating
+    await _fadeOutController.forward();
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _logoController.dispose();
+    _fadeOutController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFBEAFF),
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.favorite, size: 80, color: Colors.pinkAccent),
-                const SizedBox(height: 20),
-                Text(
-                  'Liora',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+      body: FadeTransition(
+        opacity: _fadeOutAnim,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [cs.primaryContainer.withAlpha(100), cs.surface],
+            ),
+          ),
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _logoController,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _fadeAnim.value,
+                  child: Transform.scale(
+                    scale: _scaleAnim.value,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Animated icon with gradient background
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [cs.primary, cs.secondary],
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              LioraTheme.radiusCard,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            size: 44,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(height: LioraTheme.space24),
+
+                        Text(
+                          'Liora',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                        ),
+
+                        Transform.translate(
+                          offset: Offset(0, _subtitleSlideAnim.value),
+                          child: Opacity(
+                            opacity: _fadeAnim.value,
+                            child: Text(
+                              'care for your rhythm',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: cs.onSurface.withAlpha(140),
+                                letterSpacing: 1.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'care for your rhythm',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.black54,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),

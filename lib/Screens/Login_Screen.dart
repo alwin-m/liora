@@ -1,11 +1,10 @@
-// Modernized Login Screen for Liora (v2)
-// Feminine, calm, premium UI inspired by iOS + Android Material You
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../core/cycle_session.dart';
+import 'package:provider/provider.dart';
+import '../services/cycle_provider.dart';
+import '../core/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,11 +13,42 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
   bool isLoading = false;
+  bool _obscurePassword = true;
+
+  late final AnimationController _entranceController;
+  late final Animation<double> _fadeIn;
+  late final Animation<Offset> _slideUp;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeIn = CurvedAnimation(
+      parent: _entranceController,
+      curve: Curves.easeOutCubic,
+    );
+    _slideUp = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(_fadeIn);
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> login() async {
     try {
@@ -38,26 +68,29 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = userDoc['role'];
 
       if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
+        if (mounted) Navigator.pushReplacementNamed(context, '/admin');
       } else {
         final profileCompleted = userDoc.data()!.containsKey('profileCompleted')
             ? userDoc['profileCompleted']
             : false;
 
         if (profileCompleted) {
-          // 🔥 Load cycle data before going home
-          await CycleSession.loadFromFirestore();
-          if (mounted) Navigator.pushReplacementNamed(context, '/home');
+          if (mounted) {
+            await Provider.of<CycleProvider>(context, listen: false).loadData();
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         } else {
           if (mounted) Navigator.pushReplacementNamed(context, '/onboarding');
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -67,60 +100,55 @@ class _LoginScreenState extends State<LoginScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (_) => Padding(
         padding: EdgeInsets.only(
           left: 24,
           right: 24,
           top: 24,
           bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 20),
             Text(
               'Reset password',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            _inputField(
+            const SizedBox(height: 24),
+            TextField(
               controller: resetEmailController,
-              hint: 'Email address',
-              icon: Icons.email_outlined,
+              decoration: const InputDecoration(
+                hintText: 'Email address',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 onPressed: () async {
-                  await FirebaseAuth.instance.sendPasswordResetEmail(
-                    email: resetEmailController.text.trim(),
-                  );
-                  Navigator.pop(context);
+                  try {
+                    await FirebaseAuth.instance.sendPasswordResetEmail(
+                      email: resetEmailController.text.trim(),
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Reset link sent!')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
+                  }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE96C8A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
                 child: const Text('Send reset link'),
               ),
             ),
@@ -132,161 +160,180 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFDE2EA), Color(0xFFFFF6F9)],
+            colors: [
+              LioraTheme.lavenderMuted.withAlpha(100),
+              LioraTheme.offWhiteWarm,
+            ],
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
-
-                Text(
-                  'Liora',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF2E2E2E),
-                  ),
+          child: FadeTransition(
+            opacity: _fadeIn,
+            child: SlideTransition(
+              position: _slideUp,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: LioraTheme.space24,
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 48),
 
-                const SizedBox(height: 6),
-
-                Text(
-                  'Your personal cycle companion',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-
-                const SizedBox(height: 52),
-
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 28,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _inputField(
-                        controller: emailController,
-                        hint: 'Email',
-                        icon: Icons.email_outlined,
-                      ),
-                      const SizedBox(height: 16),
-                      _inputField(
-                        controller: passwordController,
-                        hint: 'Password',
-                        icon: Icons.lock_outline,
-                        obscure: true,
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE96C8A),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                          ),
-                          child: isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                )
-                              : Text(
-                                  'Log in',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      GestureDetector(
-                        onTap: _showResetPasswordDialog,
-                        child: Text(
-                          'Forgot password?',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFFE96C8A),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                Center(
-                  child: GestureDetector(
-                    onTap: () =>
-                        Navigator.pushReplacementNamed(context, '/signup'),
-                    child: Text(
-                      'New to Liora? Create an account',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
+                    // Brand header
+                    Text(
+                      'Liora',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 44,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFFE96C8A),
+                        color: cs.onSurface,
                       ),
                     ),
-                  ),
-                ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your personal cycle companion',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: cs.onSurface.withAlpha(150),
+                      ),
+                    ),
 
-                const SizedBox(height: 48),
-              ],
+                    const SizedBox(height: 56),
+
+                    // Login card
+                    Container(
+                      padding: const EdgeInsets.all(LioraTheme.spaceLarge),
+                      decoration: BoxDecoration(
+                        color: LioraTheme.pureWhite,
+                        borderRadius: BorderRadius.circular(
+                          LioraTheme.radiusSheet,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(8),
+                            blurRadius: 40,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              hintText: 'Email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          TextField(
+                            controller: passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              hintText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                ),
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Login button with loading state
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: ElevatedButton(
+                                key: ValueKey(isLoading),
+                                onPressed: isLoading ? null : login,
+                                child: isLoading
+                                    ? SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: cs.onPrimary,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Log in',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          GestureDetector(
+                            onTap: _showResetPasswordDialog,
+                            child: Text(
+                              'Forgot password?',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    Center(
+                      child: GestureDetector(
+                        onTap: () =>
+                            Navigator.pushReplacementNamed(context, '/signup'),
+                        child: RichText(
+                          text: TextSpan(
+                            text: 'New to Liora? ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: cs.onSurface.withAlpha(160),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'Create an account',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
-        filled: true,
-        fillColor: const Color(0xFFF9F9FB),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
         ),
       ),
     );

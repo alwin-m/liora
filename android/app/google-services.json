@@ -1,0 +1,43 @@
+{
+  "project_info": {
+<<<<<<< HEAD
+    "project_number": "318953783334",
+    "project_id": "liora-d60a5",
+    "storage_bucket": "liora-d60a5.firebasestorage.app"
+=======
+    "project_number": "857182781873",
+    "project_id": "liora-56689",
+    "storage_bucket": "liora-56689.firebasestorage.app"
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
+  },
+  "client": [
+    {
+      "client_info": {
+<<<<<<< HEAD
+        "mobilesdk_app_id": "1:318953783334:android:b4eb669170d7a1c151a6e7",
+=======
+        "mobilesdk_app_id": "1:857182781873:android:34c977add0bb834f21bd90",
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
+        "android_client_info": {
+          "package_name": "com.example.lioraa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+<<<<<<< HEAD
+          "current_key": "AIzaSyDbILL84K8QsL7OsKQldabLRzDzpiGPi1c"
+=======
+          "current_key": "AIzaSyAyxQgmzAvmUPcJXcD9LalrSB4hbZ5rPpY"
+>>>>>>> 246b851c70c554cdc3c6028cf00b4384761d76af
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

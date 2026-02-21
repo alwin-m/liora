@@ -16,7 +16,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  late final CycleAlgorithm algo;
+  late CycleAlgorithm algo;
 
   final List<String> months = const [
     "January","February","March","April","May","June",
@@ -30,7 +30,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
     // ✅ SAME ENGINE AS HOME
     algo = CycleSession.algorithm;
 
-    // ✅ IMPORTANT: sync selected day to today in cycle
     selectedDay = DateTime.now();
     focusedDay = DateTime.now();
   }
@@ -69,6 +68,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  // 🔄 Month / Year toggle
   Widget _monthYearToggle() {
     return Container(
       padding: const EdgeInsets.all(4),
@@ -110,6 +110,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  // 📅 Month Calendar
   Widget _monthCalendar() {
     return TableCalendar(
       focusedDay: focusedDay,
@@ -134,6 +135,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  // 📆 Year View
   Widget _yearCalendar() {
     return Expanded(
       child: GridView.builder(
@@ -169,6 +171,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  // 🎨 Day Cell
   Widget _dayCell(DateTime day) {
     final DayType type = algo.getType(day);
 
@@ -225,6 +228,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  // ✏️ EDIT PERIOD BUTTON (WORKING)
   Widget _editPeriodButton() {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -233,12 +237,41 @@ class _TrackerScreenState extends State<TrackerScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      onPressed: () {},
+      onPressed: _editLastPeriodDate,
       child: const Text("Edit period dates"),
     );
   }
 
-  // ✅ FIXED MATHEMATICS (NO NEGATIVE MODULO BUG)
+  // 🔥 EDIT LAST PERIOD DATE LOGIC
+  Future<void> _editLastPeriodDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: algo.lastPeriod,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (pickedDate == null) return;
+
+    setState(() {
+      // 🔄 Rebuild cycle engine safely
+      CycleSession.algorithm = CycleAlgorithm(
+        lastPeriod: DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+        ),
+        cycleLength: algo.cycleLength,
+        periodLength: algo.periodLength,
+      );
+
+      algo = CycleSession.algorithm;
+      selectedDay = pickedDate;
+      focusedDay = pickedDate;
+    });
+  }
+
+  // 📊 Bottom Info Card (Cycle Day)
   Widget _bottomCard() {
     final int diff =
         selectedDay.difference(algo.lastPeriod).inDays;

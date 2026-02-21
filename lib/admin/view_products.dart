@@ -342,15 +342,21 @@ class ViewProductsScreen extends StatelessWidget {
 
                             const SizedBox(height: 8),
 
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: Colors.pinkAccent,
-                              child: const Icon(
-                                Icons.shopping_bag,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
+                            ClipRRect(
+  borderRadius: BorderRadius.circular(12),
+  child: data['image'] != null && data['image'] != ''
+      ? Image.network(
+          data['image'],
+          height: 80,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(Icons.broken_image, size: 60);
+          },
+        )
+      : const Icon(Icons.image_not_supported, size: 60),
+),
+
 
                             const SizedBox(height: 12),
 

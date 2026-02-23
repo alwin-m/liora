@@ -1,6 +1,5 @@
 # Liora - Private Mobile Application
 
-
 ![Flutter](https://img.shields.io/badge/Flutter-3.8.1-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.8.1-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth/Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)

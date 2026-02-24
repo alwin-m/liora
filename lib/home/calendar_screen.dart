@@ -154,8 +154,22 @@ class _TrackerScreenState extends State<TrackerScreen>
                   : ListView.builder(
                       controller: scrollController,
                       padding: const EdgeInsets.all(24),
-                      itemCount: provider.history.length,
+                      itemCount: provider.history.length + 1,
                       itemBuilder: (context, index) {
+                        if (index == provider.history.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(
+                              "All cycle data is stored only on this device. Uninstalling the app will permanently delete your data.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          );
+                        }
                         final entry = provider.history[index];
                         return _buildHistoryItem(entry);
                       },
@@ -168,14 +182,21 @@ class _TrackerScreenState extends State<TrackerScreen>
   }
 
   Widget _buildHistoryItem(CycleHistoryEntry entry) {
-    final start = entry.actualStartDate ?? entry.predictedStartDate;
+    final start = entry.actualLoggedDate ?? entry.predictedNextDate;
     final String monthName = _months[start.month - 1];
 
     Color indicatorColor = Colors.green;
-    if (entry.predictionDeviationDays.abs() > 3) {
+    if (entry.deviationDays.abs() > 3) {
       indicatorColor = Colors.red;
-    } else if (entry.predictionDeviationDays.abs() > 0) {
+    } else if (entry.deviationDays.abs() > 0) {
       indicatorColor = Colors.amber;
+    }
+
+    String deviationText = "On-time cycle";
+    if (entry.deviationDays > 0) {
+      deviationText = "${entry.deviationDays}-day late deviation";
+    } else if (entry.deviationDays < 0) {
+      deviationText = "${entry.deviationDays.abs()}-day early deviation";
     }
 
     return IntrinsicHeight(
@@ -218,17 +239,25 @@ class _TrackerScreenState extends State<TrackerScreen>
                   Row(
                     children: [
                       _infoBadge(
-                        '${entry.cycleLength} days',
+                        '${entry.observedCycleLengthDays} days',
                         Colors.grey[100]!,
                       ),
                       const SizedBox(width: 8),
                       _infoBadge(
-                        'Deviation: ${entry.predictionDeviationDays}d',
+                        deviationText,
                         indicatorColor.withAlpha(20),
                         textColor: indicatorColor,
                       ),
                     ],
                   ),
+                  if (entry.deviationDays != 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Predicted: ${entry.predictedNextDate.day} ${_months[entry.predictedNextDate.month - 1]}",
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      ),
+                    ),
                 ],
               ),
             ),

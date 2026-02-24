@@ -1,34 +1,46 @@
 class CycleHistoryEntry {
-  final DateTime predictedStartDate;
-  final DateTime? actualStartDate;
-  final int cycleLength;
-  final int periodDuration;
-  final int predictionDeviationDays;
+  final String recordId;
+  final DateTime initialInputDate;
+  final DateTime predictedNextDate;
+  final DateTime? actualLoggedDate;
+  final int observedCycleLengthDays;
+  final int deviationDays;
+  final DateTime modificationTimestamp;
+  final int version;
 
   CycleHistoryEntry({
-    required this.predictedStartDate,
-    this.actualStartDate,
-    required this.cycleLength,
-    required this.periodDuration,
-    required this.predictionDeviationDays,
+    required this.recordId,
+    required this.initialInputDate,
+    required this.predictedNextDate,
+    this.actualLoggedDate,
+    required this.observedCycleLengthDays,
+    required this.deviationDays,
+    required this.modificationTimestamp,
+    required this.version,
   });
 
   Map<String, dynamic> toJson() => {
-    'predictedStartDate': predictedStartDate.toIso8601String(),
-    'actualStartDate': actualStartDate?.toIso8601String(),
-    'cycleLength': cycleLength,
-    'periodDuration': periodDuration,
-    'predictionDeviationDays': predictionDeviationDays,
+    'recordId': recordId,
+    'initialInputDate': initialInputDate.toIso8601String(),
+    'predictedNextDate': predictedNextDate.toIso8601String(),
+    'actualLoggedDate': actualLoggedDate?.toIso8601String(),
+    'observedCycleLengthDays': observedCycleLengthDays,
+    'deviationDays': deviationDays,
+    'modificationTimestamp': modificationTimestamp.toIso8601String(),
+    'version': version,
   };
 
   factory CycleHistoryEntry.fromJson(Map<String, dynamic> json) =>
       CycleHistoryEntry(
-        predictedStartDate: DateTime.parse(json['predictedStartDate']),
-        actualStartDate: json['actualStartDate'] != null
-            ? DateTime.parse(json['actualStartDate'])
+        recordId: json['recordId'] ?? '',
+        initialInputDate: DateTime.parse(json['initialInputDate']),
+        predictedNextDate: DateTime.parse(json['predictedNextDate']),
+        actualLoggedDate: json['actualLoggedDate'] != null
+            ? DateTime.parse(json['actualLoggedDate'])
             : null,
-        cycleLength: json['cycleLength'],
-        periodDuration: json['periodDuration'],
-        predictionDeviationDays: json['predictionDeviationDays'],
+        observedCycleLengthDays: json['observedCycleLengthDays'],
+        deviationDays: json['deviationDays'],
+        modificationTimestamp: DateTime.parse(json['modificationTimestamp']),
+        version: json['version'] ?? 1,
       );
 }

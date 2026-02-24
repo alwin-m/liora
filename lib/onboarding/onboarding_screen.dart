@@ -311,6 +311,19 @@ class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen>
           context,
         ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
       ),
+      const SizedBox(height: LioraTheme.space16),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Text(
+          "Privacy Note: All your cycle data is stored only on this device. If you uninstall the app or lose your phone, your data cannot be recovered.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: cs.onSurface.withAlpha(140),
+            fontSize: 12,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ),
       const SizedBox(height: LioraTheme.space32),
       _primaryButton("Explore Your Calendar", cs),
     ],

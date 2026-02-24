@@ -47,7 +47,6 @@ class CycleProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load from local secure storage only
       final prefs = await SharedPreferences.getInstance();
       final localData = prefs.getString(_storageKey);
 
@@ -61,7 +60,6 @@ class CycleProvider with ChangeNotifier {
         }
       }
 
-      // Use default if no local data exists
       if (_cycleData == null) {
         _cycleData = CycleDataModel(
           lastPeriodStartDate: DateTime.now().subtract(
@@ -71,37 +69,49 @@ class CycleProvider with ChangeNotifier {
           averagePeriodDuration: 5,
         );
 
-        // Auto-generate demo history for UI testing
         if (_history.isEmpty) {
           _history = [
             CycleHistoryEntry(
-              predictedStartDate: DateTime.now().subtract(
+              recordId: 'init-1',
+              initialInputDate: DateTime.now().subtract(
                 const Duration(days: 42),
               ),
-              actualStartDate: DateTime.now().subtract(
+              predictedNextDate: DateTime.now().subtract(
                 const Duration(days: 42),
               ),
-              cycleLength: 28,
-              periodDuration: 5,
-              predictionDeviationDays: 0,
+              actualLoggedDate: DateTime.now().subtract(
+                const Duration(days: 42),
+              ),
+              observedCycleLengthDays: 28,
+              deviationDays: 0,
+              modificationTimestamp: DateTime.now().subtract(
+                const Duration(days: 42),
+              ),
+              version: 1,
             ),
             CycleHistoryEntry(
-              predictedStartDate: DateTime.now().subtract(
-                const Duration(days: 70),
-              ),
-              actualStartDate: DateTime.now().subtract(
+              recordId: 'init-2',
+              initialInputDate: DateTime.now().subtract(
                 const Duration(days: 72),
               ),
-              cycleLength: 30,
-              periodDuration: 6,
-              predictionDeviationDays: 2,
+              predictedNextDate: DateTime.now().subtract(
+                const Duration(days: 70),
+              ),
+              actualLoggedDate: DateTime.now().subtract(
+                const Duration(days: 72),
+              ),
+              observedCycleLengthDays: 30,
+              deviationDays: 2,
+              modificationTimestamp: DateTime.now().subtract(
+                const Duration(days: 72),
+              ),
+              version: 1,
             ),
           ];
         }
       }
     } catch (e) {
       debugPrint('[PRIVACY] Error loading local cycle data: $e');
-      // Initialize with defaults if load fails
       _cycleData = CycleDataModel(
         lastPeriodStartDate: DateTime.now().subtract(const Duration(days: 14)),
         averageCycleLength: 28,
@@ -114,8 +124,7 @@ class CycleProvider with ChangeNotifier {
   }
 
   /// Update cycle data and persist to LOCAL storage only.
-  /// CRITICAL: This data is NEVER sent to the backend.
-  /// All predictions are computed locally using this data.
+  /// This now generates a history entry if there was a deviation.
   Future<void> updateCycleData({
     required DateTime lastPeriodStartDate,
     required int averageCycleLength,
@@ -124,6 +133,29 @@ class CycleProvider with ChangeNotifier {
     String? cycleRegularity,
     String? pmsLevel,
   }) async {
+    // If we have previous data, calculate deviation
+    if (_cycleData != null) {
+      final previousPredicted = _cycleData!.computedNextPeriodStart;
+      final deviation = lastPeriodStartDate
+          .difference(previousPredicted)
+          .inDays;
+
+      final historyEntry = CycleHistoryEntry(
+        recordId: DateTime.now().microsecondsSinceEpoch.toString(),
+        initialInputDate: _cycleData!.lastPeriodStartDate,
+        predictedNextDate: previousPredicted,
+        actualLoggedDate: lastPeriodStartDate,
+        observedCycleLengthDays: lastPeriodStartDate
+            .difference(_cycleData!.lastPeriodStartDate)
+            .inDays,
+        deviationDays: deviation,
+        modificationTimestamp: DateTime.now(),
+        version: 1,
+      );
+
+      _history.insert(0, historyEntry); // Add to history
+    }
+
     final newData = CycleDataModel(
       lastPeriodStartDate: lastPeriodStartDate,
       averageCycleLength: averageCycleLength,
@@ -136,8 +168,25 @@ class CycleProvider with ChangeNotifier {
     _cycleData = newData;
     notifyListeners();
 
-    // Save to LOCAL storage only - NO backend transmission
     await _saveLocalOnly(newData);
+  }
+
+  // Analytics - LOCAL ONLY
+  double get averageDeviation {
+    if (_history.isEmpty) return 0.0;
+    final total = _history.fold(
+      0,
+      (sum, entry) => sum + entry.deviationDays.abs(),
+    );
+    return total / _history.length;
+  }
+
+  int get regularityScore {
+    if (_history.isEmpty) return 100;
+    final avgDev = averageDeviation;
+    if (avgDev < 2) return 95;
+    if (avgDev < 5) return 80;
+    return 60;
   }
 
   /// Save cycle data to LOCAL storage only using encrypted SharedPreferences.

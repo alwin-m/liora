@@ -74,13 +74,15 @@ class _LoginScreenState extends State<LoginScreen>
             ? userDoc['profileCompleted']
             : false;
 
+        if (!mounted) return;
+
         if (profileCompleted) {
+          await Provider.of<CycleProvider>(context, listen: false).loadData();
           if (mounted) {
-            await Provider.of<CycleProvider>(context, listen: false).loadData();
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else {
-          if (mounted) Navigator.pushReplacementNamed(context, '/onboarding');
+          Navigator.pushReplacementNamed(context, '/onboarding');
         }
       }
     } catch (e) {

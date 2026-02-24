@@ -123,15 +123,15 @@ class ViewProductsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.95),
-                            Colors.blue.shade50.withOpacity(0.7),
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.blue.shade50.withValues(alpha: 0.7),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black12.withOpacity(0.05),
+                            color: Colors.black12.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -287,8 +287,8 @@ class ViewProductsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.95),
-                            Colors.blue.shade50.withOpacity(0.7),
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.blue.shade50.withValues(alpha: 0.7),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -303,7 +303,10 @@ class ViewProductsScreen extends StatelessWidget {
                             Align(
                               alignment: Alignment.topRight,
                               child: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () async {
                                   final confirm = await showDialog<bool>(
                                     context: context,
@@ -343,20 +346,27 @@ class ViewProductsScreen extends StatelessWidget {
                             const SizedBox(height: 8),
 
                             ClipRRect(
-  borderRadius: BorderRadius.circular(12),
-  child: data['image'] != null && data['image'] != ''
-      ? Image.network(
-          data['image'],
-          height: 80,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.broken_image, size: 60);
-          },
-        )
-      : const Icon(Icons.image_not_supported, size: 60),
-),
-
+                              borderRadius: BorderRadius.circular(12),
+                              child:
+                                  data['image'] != null && data['image'] != ''
+                                  ? Image.network(
+                                      data['image'],
+                                      height: 80,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.broken_image,
+                                              size: 60,
+                                            );
+                                          },
+                                    )
+                                  : const Icon(
+                                      Icons.image_not_supported,
+                                      size: 60,
+                                    ),
+                            ),
 
                             const SizedBox(height: 12),
 

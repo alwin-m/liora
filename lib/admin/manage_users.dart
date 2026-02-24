@@ -364,10 +364,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.pinkAccent.withOpacity(0.2),
+                    color: Colors.pinkAccent.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -431,7 +431,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                         child: Card(
                           elevation: 6,
                           margin: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -440,8 +442,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                               borderRadius: BorderRadius.circular(16),
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.white.withOpacity(0.95),
-                                  Colors.blue.shade50
+                                  Colors.white.withValues(alpha: 0.95),
+                                  Colors.blue.shade50,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -455,12 +457,15 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                               title: Text(
                                 data['name'] ?? 'No Name',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               subtitle: Text(data['email'] ?? 'No Email'),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.redAccent),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.redAccent,
+                                ),
                                 splashRadius: 24,
                                 onPressed: () async {
                                   final confirm = await showDialog<bool>(
@@ -468,7 +473,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                     builder: (_) => AlertDialog(
                                       title: const Text("Delete User"),
                                       content: const Text(
-                                          "Are you sure you want to delete this user?"),
+                                        "Are you sure you want to delete this user?",
+                                      ),
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
@@ -479,7 +485,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                           onPressed: () =>
                                               Navigator.pop(context, true),
                                           style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red),
+                                            backgroundColor: Colors.red,
+                                          ),
                                           child: const Text("Delete"),
                                         ),
                                       ],
@@ -556,7 +563,8 @@ class UserDetailScreen extends StatelessWidget {
                 child: Card(
                   elevation: 8,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -564,15 +572,21 @@ class UserDetailScreen extends StatelessWidget {
                         const CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.pinkAccent,
-                          child: Icon(Icons.person,
-                              color: Colors.white, size: 40),
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 40,
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        Text(name,
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text(email,
-                            style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(email, style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -609,71 +623,73 @@ class UserDetailScreen extends StatelessWidget {
                       return Card(
                         elevation: 4,
                         margin: const EdgeInsets.only(bottom: 12),
-                                              shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              data['productName'] ?? 'Product',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                data['productName'] ?? 'Product',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "₹${data['price']}",
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
+                              const SizedBox(height: 6),
+                              Text(
+                                "₹${data['price']}",
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Chip(
-                                  label: Text(
-                                    data['status'] ?? 'Unknown',
-                                    style: TextStyle(
-                                      color: data['status'] == 'placed'
-                                          ? Colors.green
-                                          : Colors.red,
-                                      fontWeight: FontWeight.bold,
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Chip(
+                                    label: Text(
+                                      data['status'] ?? 'Unknown',
+                                      style: TextStyle(
+                                        color: data['status'] == 'placed'
+                                            ? Colors.green
+                                            : Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    backgroundColor: data['status'] == 'placed'
+                                        ? Colors.green.withValues(alpha: 0.2)
+                                        : Colors.red.withValues(alpha: 0.2),
+                                  ),
+                                  Text(
+                                    (data['createdAt'] as Timestamp)
+                                        .toDate()
+                                        .toString()
+                                        .split(' ')
+                                        .first,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
                                     ),
                                   ),
-                                  backgroundColor: data['status'] == 'placed'
-                                      ? Colors.green.withOpacity(0.2)
-                                      : Colors.red.withOpacity(0.2),
-                                ),
-                                Text(
-                                  (data['createdAt'] as Timestamp)
-                                      .toDate()
-                                      .toString()
-                                      .split(' ')
-                                      .first,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }

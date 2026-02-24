@@ -7,10 +7,10 @@ import 'firebase_options.dart';
 import 'core/app_theme.dart';
 
 // Screens
-import 'Screens/Splash_Screen.dart';
-import 'Screens/Signup_Screen.dart';
-import 'Screens/Login_Screen.dart';
-import 'home/Home_Screen.dart';
+import 'Screens/splash_screen.dart';
+import 'Screens/signup_screen.dart';
+import 'Screens/login_screen.dart';
+import 'home/home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
 // Admin

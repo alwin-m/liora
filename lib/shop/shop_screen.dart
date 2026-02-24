@@ -64,7 +64,6 @@ class _ShopScreenState extends State<ShopScreen> {
       id: product.id,
       name: product.name,
       price: product.price,
-      icon: Icons.shopping_bag_rounded,
       image: product.imageUrl,
     );
 
@@ -967,7 +966,6 @@ class _CartSheetState extends State<_CartSheet> {
                           id: item.id,
                           name: item.name,
                           price: item.price,
-                          icon: Icons.shopping_bag,
                           image: item.image,
                         ),
                         icon: const Icon(Icons.add_circle_outline),

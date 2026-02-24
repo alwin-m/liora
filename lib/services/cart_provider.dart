@@ -56,16 +56,13 @@ class CartProvider with ChangeNotifier {
     required String id,
     required String name,
     required int price,
-    required IconData icon,
     required String image,
   }) {
     final existingIndex = _items.indexWhere((item) => item.id == id);
     if (existingIndex >= 0) {
       _items[existingIndex].quantity += 1;
     } else {
-      _items.add(
-        CartItem(id: id, name: name, price: price, icon: icon, image: image),
-      );
+      _items.add(CartItem(id: id, name: name, price: price, image: image));
     }
     _saveCart();
     notifyListeners();

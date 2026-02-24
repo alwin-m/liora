@@ -135,7 +135,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               obscureText: !_newPasswordVisible,
               decoration: const InputDecoration(
                 labelText: "Confirm New Password",
-                prefixIcon: const Icon(Icons.lock_rounded),
+                prefixIcon: Icon(Icons.lock_rounded),
               ),
             ),
             const SizedBox(height: 48),

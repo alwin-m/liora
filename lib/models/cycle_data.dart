@@ -1,17 +1,30 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+/// CycleDataModel - Medical Data - LOCAL STORAGE ONLY
+///
+/// PRIVACY CLASSIFICATION: STRICTLY SENSITIVE HEALTH INFORMATION
+/// - Never transmitted to backend
+/// - Never stored in database
+/// - Exists ONLY on user's device
+/// - Automatically deleted on app uninstall
 class CycleDataModel {
   final DateTime lastPeriodStartDate;
   final int averageCycleLength;
   final int averagePeriodDuration;
 
+  // Additional sensitive medical data (LOCAL ONLY)
+  final String? flowLevel;
+  final String? cycleRegularity;
+  final String? pmsLevel;
+
   CycleDataModel({
     required this.lastPeriodStartDate,
     required this.averageCycleLength,
     required this.averagePeriodDuration,
+    this.flowLevel,
+    this.cycleRegularity,
+    this.pmsLevel,
   });
 
-  // Computed properties
+  // Computed properties - all calculations done locally, offline-capable
   DateTime get computedNextPeriodStart {
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day);
@@ -45,25 +58,26 @@ class CycleDataModel {
     return computedNextPeriodStart.difference(today).inDays;
   }
 
-  // Regularity is a placeholder for now as requested
-  String get regularity => "Regular";
+  // Regularity is now stored if provided, otherwise defaults to "Regular"
+  String get regularity => cycleRegularity ?? "Regular";
 
+  /// Serialize cycle data to JSON for local storage
   Map<String, dynamic> toJson() => {
     'lastPeriodStartDate': lastPeriodStartDate.toIso8601String(),
     'averageCycleLength': averageCycleLength,
     'averagePeriodDuration': averagePeriodDuration,
+    'flowLevel': flowLevel,
+    'cycleRegularity': cycleRegularity,
+    'pmsLevel': pmsLevel,
   };
 
+  /// Deserialize cycle data from local JSON
   factory CycleDataModel.fromJson(Map<String, dynamic> json) => CycleDataModel(
     lastPeriodStartDate: DateTime.parse(json['lastPeriodStartDate']),
     averageCycleLength: json['averageCycleLength'],
     averagePeriodDuration: json['averagePeriodDuration'],
+    flowLevel: json['flowLevel'],
+    cycleRegularity: json['cycleRegularity'],
+    pmsLevel: json['pmsLevel'],
   );
-
-  factory CycleDataModel.fromFirestore(Map<String, dynamic> data) =>
-      CycleDataModel(
-        lastPeriodStartDate: (data['lastPeriodDate'] as Timestamp).toDate(),
-        averageCycleLength: data['cycleLength'] ?? 28,
-        averagePeriodDuration: data['periodLength'] ?? 5,
-      );
 }

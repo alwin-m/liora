@@ -86,6 +86,7 @@ class _SignupScreenState extends State<SignupScreen>
           });
 
       if (mounted) {
+        // PRIVACY: Initialize default cycle data (stored locally only, never sent to backend)
         final provider = Provider.of<CycleProvider>(context, listen: false);
         await provider.updateCycleData(
           lastPeriodStartDate: DateTime.now().subtract(
@@ -310,3 +311,4 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 }
+

@@ -18,6 +18,27 @@ class LioraTheme {
   static const Color textPrimary = Color(0xFF4A4A4A);
   static const Color textSecondary = Color(0xFF7A7A7A);
 
+  // ── Luxury Calendar Palette (Minimal Queen Aesthetic) ────────────
+  // Inspired by luxury brands: understated, emotionally intelligent, premium
+  static const Color calendarBgIvoryMist = Color(
+    0xFFF6F1EB,
+  ); // Porcelain Ivory - soft, warm base reducing eye strain
+  static const Color calendarTextCharcoalPlum = Color(
+    0xFF342A33,
+  ); // Deep Cocoa Plum - elegant readable text
+  static const Color calendarBleedingRoyalBerry = Color(
+    0xFFB04A5A,
+  ); // Soft Garnet - warm, intimate menstrual indicator
+  static const Color calendarOvulationSageEmerald = Color(
+    0xFF7FA88B,
+  ); // Muted Olive Jade - growth, renewal, fertility
+  static const Color calendarFertileSoftChampagne = Color(
+    0xFFC9DDD3,
+  ); // Soft Sage Mist - gentle vitality, anticipation
+  static const Color calendarTodayRoyalMauve = Color(
+    0xFFD8C3A5,
+  ); // Champagne Gold Ring - premium, neutral importance
+
   // ── Geometry & Space ──────────────────────────────────────────
   static const double space4 = 4;
   static const double space8 = 8;

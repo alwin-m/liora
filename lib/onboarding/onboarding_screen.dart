@@ -86,6 +86,9 @@ class _OnboardingQuestionsScreenState extends State<OnboardingQuestionsScreen>
         lastPeriodStartDate: lastPeriodDate ?? DateTime.now(),
         averageCycleLength: cycleLength,
         averagePeriodDuration: periodLength,
+        flowLevel: flowLevel,
+        cycleRegularity: cycleRegularity,
+        pmsLevel: pmsLevel,
       );
 
       if (mounted) {

@@ -3,7 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/cycle_provider.dart';
-import '../home/cycle_algorithm.dart';
+import '../core/cycle_algorithm.dart';
 import '../models/cycle_data.dart';
 import '../models/cycle_history_entry.dart';
 import '../core/app_theme.dart';
@@ -322,7 +322,7 @@ class _TrackerScreenState extends State<TrackerScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: LioraTheme.spaceLarge),
       decoration: BoxDecoration(
-        color: LioraTheme.pureWhite,
+        color: LioraTheme.calendarBgIvoryMist,
         borderRadius: BorderRadius.circular(LioraTheme.radiusSheet),
         boxShadow: [
           BoxShadow(
@@ -344,14 +344,14 @@ class _TrackerScreenState extends State<TrackerScreen>
             focusedDay = f;
           });
         },
-        calendarStyle: CalendarStyle(
+        calendarStyle: const CalendarStyle(
           outsideDaysVisible: false,
-          defaultTextStyle: const TextStyle(
-            color: LioraTheme.textPrimary,
+          defaultTextStyle: TextStyle(
+            color: LioraTheme.calendarTextCharcoalPlum,
             fontWeight: FontWeight.w500,
           ),
-          weekendTextStyle: const TextStyle(
-            color: LioraTheme.textPrimary,
+          weekendTextStyle: TextStyle(
+            color: LioraTheme.calendarTextCharcoalPlum,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -365,16 +365,16 @@ class _TrackerScreenState extends State<TrackerScreen>
           formatButtonVisible: false,
           leftChevronIcon: const Icon(
             Icons.chevron_left_rounded,
-            color: LioraTheme.textSecondary,
+            color: LioraTheme.calendarTextCharcoalPlum,
           ),
           rightChevronIcon: const Icon(
             Icons.chevron_right_rounded,
-            color: LioraTheme.textSecondary,
+            color: LioraTheme.calendarTextCharcoalPlum,
           ),
           titleTextStyle: GoogleFonts.playfairDisplay(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: LioraTheme.textPrimary,
+            color: LioraTheme.calendarTextCharcoalPlum,
           ),
         ),
       ),
@@ -434,18 +434,27 @@ class _TrackerScreenState extends State<TrackerScreen>
     );
   }
 
-  // Day Cell with Luxury Soft Palette
+  // Day Cell with Luxury Soft Palette & Color Psychology
+  // Bleeding days: Soft Garnet (intimate, warm, biologically accurate)
+  // Ovulation: Muted Olive Jade (growth, renewal, fertility)
+  // Fertile window: Soft Sage Mist (gentle vitality, anticipation)
   Widget _dayCell(DateTime day, CycleAlgorithm algo, ColorScheme cs) {
     final DayType type = algo.getType(day);
     Color? bgColor;
-    Color textColor = LioraTheme.textPrimary;
+    Color textColor = LioraTheme.calendarTextCharcoalPlum;
 
     if (type == DayType.period) {
-      bgColor = LioraTheme.roseRedMuted.withAlpha(60);
-      textColor = LioraTheme.roseRedMuted;
-    } else if (type == DayType.fertile || type == DayType.ovulation) {
-      bgColor = LioraTheme.sageGreen.withAlpha(60);
-      textColor = LioraTheme.sageGreen;
+      // Bleeding days: Filled circle with Soft Garnet (warm, intimate)
+      bgColor = LioraTheme.calendarBleedingRoyalBerry;
+      textColor = LioraTheme.pureWhite;
+    } else if (type == DayType.ovulation) {
+      // Ovulation day: Filled circle with Muted Olive Jade (fertility, growth)
+      bgColor = LioraTheme.calendarOvulationSageEmerald;
+      textColor = LioraTheme.pureWhite;
+    } else if (type == DayType.fertile) {
+      // Fertile window: Light background tint (gentle vitality)
+      bgColor = LioraTheme.calendarFertileSoftChampagne.withAlpha(100);
+      textColor = LioraTheme.calendarTextCharcoalPlum;
     }
 
     return Center(
@@ -455,7 +464,18 @@ class _TrackerScreenState extends State<TrackerScreen>
         height: 38,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            type == DayType.period || type == DayType.ovulation ? 50 : 12,
+          ),
+          boxShadow: bgColor != null && type != DayType.fertile
+              ? [
+                  BoxShadow(
+                    color: bgColor.withAlpha(30),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Center(
           child: Text(
@@ -463,6 +483,7 @@ class _TrackerScreenState extends State<TrackerScreen>
             style: TextStyle(
               color: textColor,
               fontWeight: bgColor != null ? FontWeight.bold : FontWeight.w500,
+              fontSize: 14,
             ),
           ),
         ),
@@ -470,13 +491,18 @@ class _TrackerScreenState extends State<TrackerScreen>
     );
   }
 
+  // Today's Date: Premium Ring Indicator
+  // Champagne Gold Ring (#D8C3A5) - neutral, premium highlight
   Widget _todayCell(DateTime day, ColorScheme cs) {
     return Center(
       child: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          border: Border.all(color: LioraTheme.coralSoft, width: 1.5),
+          border: Border.all(
+            color: LioraTheme.calendarTodayRoyalMauve,
+            width: 2.5,
+          ),
           shape: BoxShape.circle,
         ),
         child: Center(
@@ -484,7 +510,8 @@ class _TrackerScreenState extends State<TrackerScreen>
             "${day.day}",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: LioraTheme.textPrimary,
+              color: LioraTheme.calendarTextCharcoalPlum,
+              fontSize: 14,
             ),
           ),
         ),
@@ -492,19 +519,20 @@ class _TrackerScreenState extends State<TrackerScreen>
     );
   }
 
+  // Selected Date: Premium Highlight
   Widget _selectedCell(DateTime day, ColorScheme cs) {
     return Center(
       child: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: LioraTheme.blushRose,
+          color: LioraTheme.calendarTodayRoyalMauve.withAlpha(120),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: LioraTheme.blushRose.withAlpha(60),
+              color: LioraTheme.calendarTodayRoyalMauve.withAlpha(50),
               blurRadius: 8,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -513,7 +541,8 @@ class _TrackerScreenState extends State<TrackerScreen>
             "${day.day}",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: LioraTheme.textPrimary,
+              color: LioraTheme.pureWhite,
+              fontSize: 14,
             ),
           ),
         ),
@@ -553,6 +582,9 @@ class _TrackerScreenState extends State<TrackerScreen>
       ),
       averageCycleLength: data.averageCycleLength,
       averagePeriodDuration: data.averagePeriodDuration,
+      flowLevel: data.flowLevel,
+      cycleRegularity: data.cycleRegularity,
+      pmsLevel: data.pmsLevel,
     );
 
     setState(() {
@@ -569,7 +601,8 @@ class _TrackerScreenState extends State<TrackerScreen>
   ) {
     final int diff = selectedDay.difference(algo.lastPeriod).inDays;
     final int safeDiff =
-        ((diff % algo.cycleLength) + algo.cycleLength) % algo.cycleLength;
+        (((diff % algo.cycleLength) + algo.cycleLength) % algo.cycleLength)
+            .toInt();
     final int cycleDay = safeDiff + 1;
 
     return GestureDetector(

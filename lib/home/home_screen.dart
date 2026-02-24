@@ -6,14 +6,14 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import 'package:lioraa/home/calendar_screen.dart';
-import 'package:lioraa/home/profile_screen.dart';
-import 'package:lioraa/shop/shop_screen.dart';
+import 'calendar_screen.dart';
+import 'profile_screen.dart';
+import '../shop/shop_screen.dart';
 
 import '../services/cycle_provider.dart';
 import '../models/cycle_data.dart';
 import '../core/app_theme.dart';
-import 'cycle_algorithm.dart';
+import '../core/cycle_algorithm.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -189,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _calendarCard(CycleAlgorithm algo, ColorScheme cs) {
     return Card(
+      color: LioraTheme.calendarBgIvoryMist,
       elevation: 0.5,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
@@ -216,10 +217,10 @@ class _HomeScreenState extends State<HomeScreen> {
           headerStyle: HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
-            titleTextStyle: TextStyle(
+            titleTextStyle: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: cs.primary,
+              color: LioraTheme.calendarTextCharcoalPlum,
             ),
           ),
         ),
@@ -227,6 +228,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Home Calendar Day Box: Luxury Color Psychology
+  // Bleeding days: Soft Garnet (warm, intimate)
+  // Ovulation: Muted Olive Jade (growth, renewal)
+  // Fertile window: Soft Sage Mist (gentle vitality)
   Widget _dayBox(
     DateTime day,
     DayType type,
@@ -234,16 +239,21 @@ class _HomeScreenState extends State<HomeScreen> {
     bool selected = false,
     bool today = false,
   }) {
-    Color color = Colors.transparent;
-    Color textColor = LioraTheme.textPrimary;
+    Color bgColor = Colors.transparent;
+    Color textColor = LioraTheme.calendarTextCharcoalPlum;
 
     if (type == DayType.period) {
-      color = LioraTheme.roseRedMuted.withAlpha(50);
-      textColor = LioraTheme.roseRedMuted;
-    }
-    if (type == DayType.fertile || type == DayType.ovulation) {
-      color = LioraTheme.sageGreen.withAlpha(50);
-      textColor = LioraTheme.sageGreen;
+      // Bleeding days: Filled circle with Soft Garnet
+      bgColor = LioraTheme.calendarBleedingRoyalBerry;
+      textColor = LioraTheme.pureWhite;
+    } else if (type == DayType.ovulation) {
+      // Ovulation day: Filled circle with Muted Olive Jade
+      bgColor = LioraTheme.calendarOvulationSageEmerald;
+      textColor = LioraTheme.pureWhite;
+    } else if (type == DayType.fertile) {
+      // Fertile window: Light background tint (gentle vitality)
+      bgColor = LioraTheme.calendarFertileSoftChampagne.withAlpha(100);
+      textColor = LioraTheme.calendarTextCharcoalPlum;
     }
 
     return AnimatedContainer(
@@ -251,19 +261,37 @@ class _HomeScreenState extends State<HomeScreen> {
       curve: LioraTheme.curveStandard,
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: selected ? LioraTheme.blushRose : color,
-        borderRadius: BorderRadius.circular(10),
+        color: selected
+            ? LioraTheme.calendarTodayRoyalMauve.withAlpha(120)
+            : bgColor,
+        borderRadius: BorderRadius.circular(
+          (type == DayType.period || type == DayType.ovulation) && !selected
+              ? 50
+              : 10,
+        ),
         border: today
-            ? Border.all(color: LioraTheme.coralSoft, width: 1.5)
+            ? Border.all(color: LioraTheme.calendarTodayRoyalMauve, width: 2)
+            : null,
+        boxShadow:
+            (type == DayType.period || type == DayType.ovulation) && !selected
+            ? [
+                BoxShadow(
+                  color: bgColor.withAlpha(30),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ]
             : null,
       ),
       alignment: Alignment.center,
-      child: Text(
-        "${day.day}",
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: (selected || today) ? FontWeight.bold : FontWeight.w500,
-          color: (selected) ? LioraTheme.textPrimary : textColor,
+      child: Center(
+        child: Text(
+          "${day.day}",
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: (selected || today) ? FontWeight.bold : FontWeight.w500,
+            color: (selected) ? LioraTheme.pureWhite : textColor,
+          ),
         ),
       ),
     );
@@ -1095,6 +1123,9 @@ class _EnhancedNextPeriodSheetState extends State<_EnhancedNextPeriodSheet> {
         lastPeriodStartDate: _editLastPeriodDate,
         averageCycleLength: int.parse(_cycleLengthCtrl.text),
         averagePeriodDuration: int.parse(_periodDurationCtrl.text),
+        flowLevel: widget.initialData.flowLevel,
+        cycleRegularity: widget.initialData.cycleRegularity,
+        pmsLevel: widget.initialData.pmsLevel,
       );
 
       if (mounted) {

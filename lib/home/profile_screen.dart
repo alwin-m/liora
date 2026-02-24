@@ -15,6 +15,8 @@ import 'package:lioraa/Screens/Login_Screen.dart';
 import 'package:lioraa/Screens/change_password_screen.dart';
 import 'package:lioraa/Screens/my_orders_screen.dart';
 import 'package:lioraa/services/cycle_provider.dart';
+import 'package:lioraa/services/cart_provider.dart';
+import 'package:lioraa/services/notification_service.dart';
 import 'package:lioraa/core/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -30,11 +32,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Uint8List? _profileImageBytes;
   static const String _profileImageKey = 'local_profile_image';
 
+  // Reminder toggles
+  bool _cycleRemindersEnabled = false;
+  bool _deliveryRemindersEnabled = false;
+  final NotificationService _notificationService = NotificationService();
+
   @override
   void initState() {
     super.initState();
     _fetchUserName();
     _loadLocalProfileImage();
+    _loadReminderPreferences();
+  }
+
+  Future<void> _loadReminderPreferences() async {
+    final cycleEnabled = await _notificationService.isCycleRemindersEnabled();
+    final deliveryEnabled = await _notificationService
+        .isDeliveryRemindersEnabled();
+    setState(() {
+      _cycleRemindersEnabled = cycleEnabled;
+      _deliveryRemindersEnabled = deliveryEnabled;
+    });
   }
 
   Future<void> _loadLocalProfileImage() async {
@@ -243,13 +261,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed == true) {
-      await FirebaseAuth.instance.signOut();
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
+        // PRIVACY ENFORCEMENT: Clear all local medical data on logout
+        final cycleProvider = Provider.of<CycleProvider>(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
+          listen: false,
         );
+        await cycleProvider.clearLocalData();
+
+        // Clear local profile image
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_profileImageKey);
+
+        // Clear local cart data
+        if (mounted) {
+          final cartProvider = Provider.of<CartProvider>(
+            context,
+            listen: false,
+          );
+          cartProvider.clearCart();
+        }
+
+        await FirebaseAuth.instance.signOut();
+
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
       }
     }
   }
@@ -543,14 +584,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildToggleItem(
             icon: Icons.notifications_none_rounded,
             title: 'Cycle Reminders',
-            value: true,
-            onChanged: (v) {},
+            value: _cycleRemindersEnabled,
+            onChanged: _onCycleReminderChanged,
           ),
           _buildToggleItem(
-            icon: Icons.color_lens_outlined,
-            title: 'Dynamic Colors',
-            value: true,
-            onChanged: (v) {},
+            icon: Icons.local_shipping_outlined,
+            title: 'Delivery Reminders',
+            value: _deliveryRemindersEnabled,
+            onChanged: _onDeliveryReminderChanged,
           ),
           const SizedBox(height: LioraTheme.space12),
           _buildSectionHeader('Legal'),
@@ -680,13 +721,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: LioraTheme.sageGreen.withAlpha(40),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.notifications_none_rounded,
-            color: LioraTheme.textPrimary,
-            size: 20,
-          ),
+          child: Icon(icon, color: LioraTheme.textPrimary, size: 20),
         ),
-        activeColor: LioraTheme.blushRose,
+        activeThumbColor: LioraTheme.blushRose,
         title: Text(
           title,
           style: GoogleFonts.inter(
@@ -726,13 +763,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed == true) {
       try {
-        await FirebaseAuth.instance.currentUser?.delete();
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
+          // PRIVACY ENFORCEMENT: Clear all local medical data on account deletion
+          final cycleProvider = Provider.of<CycleProvider>(
             context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
+            listen: false,
           );
+          await cycleProvider.clearLocalData();
+
+          // Clear local profile image
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(_profileImageKey);
+
+          // Clear local cart data
+          if (mounted) {
+            final cartProvider = Provider.of<CartProvider>(
+              context,
+              listen: false,
+            );
+            cartProvider.clearCart();
+          }
+
+          await FirebaseAuth.instance.currentUser?.delete();
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -742,6 +801,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         }
+      }
+    }
+  }
+
+  /// Handle cycle reminder toggle
+  Future<void> _onCycleReminderChanged(bool value) async {
+    setState(() => _cycleRemindersEnabled = value);
+
+    if (value) {
+      // Request notification permission
+      final permissionGranted = await _notificationService
+          .requestNotificationPermission();
+
+      if (permissionGranted) {
+        // Get the next period start date from the cycle provider
+        if (mounted) {
+          final cycleProvider = Provider.of<CycleProvider>(
+            context,
+            listen: false,
+          );
+          if (cycleProvider.cycleData != null) {
+            final nextPeriod = cycleProvider.cycleData!.computedNextPeriodStart;
+            await _notificationService.scheduleCycleReminder(nextPeriod);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Cycle reminders enabled. You\'ll receive a notification 3 days before your period.',
+                  ),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      } else {
+        // Permission denied, revert the toggle
+        setState(() => _cycleRemindersEnabled = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notification permission denied'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      // Disable cycle reminders
+      await _notificationService.cancelCycleReminders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cycle reminders disabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle delivery reminder toggle
+  Future<void> _onDeliveryReminderChanged(bool value) async {
+    setState(() => _deliveryRemindersEnabled = value);
+
+    if (value) {
+      // Request notification permission
+      final permissionGranted = await _notificationService
+          .requestNotificationPermission();
+
+      if (permissionGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Delivery reminders enabled'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Permission denied, revert the toggle
+        setState(() => _deliveryRemindersEnabled = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notification permission denied'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      // Disable delivery reminders
+      await _notificationService.cancelDeliveryReminders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Delivery reminders disabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     }
   }

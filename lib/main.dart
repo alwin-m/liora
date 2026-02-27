@@ -22,25 +22,21 @@ import 'admin/manage_users.dart';
 // Providers
 import 'services/cart_provider.dart';
 import 'services/cycle_provider.dart';
+import 'services/theme_provider.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Low-glare immersive display for luxury feel
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: LioraTheme.offWhiteWarm,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
-
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // ── Parallel initialization for faster cold-start ──────────────
+  await Future.wait([
+    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    _configureSystemUI(),
+  ]);
 
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => CycleProvider()),
       ],
@@ -49,25 +45,53 @@ void main() async {
   );
 }
 
+/// Configure immersive edge-to-edge display (Samsung S26 / 120Hz).
+Future<void> _configureSystemUI() async {
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge, // full edge-to-edge immersive
+  );
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+}
+
 class LioraApp extends StatelessWidget {
   const LioraApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liora',
       theme: LioraTheme.lightTheme,
+      darkTheme: LioraTheme.darkTheme,
+      themeMode: themeProvider.themeMode,
+      // Route table — eagerly pre-registered (no lazy overhead on first push)
       routes: {
-        '/': (context) => const SplashScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/onboarding': (context) => const OnboardingQuestionsScreen(),
-        '/admin': (context) => const AdminDashboard(),
-        '/addProduct': (context) => const AddProductScreen(),
-        '/viewProducts': (context) => const ViewProductsScreen(),
-        '/manageUsers': (context) => const ManageUsersScreen(),
+        '/': (_) => const SplashScreen(),
+        '/signup': (_) => const SignupScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/home': (_) => const HomeScreen(),
+        '/onboarding': (_) => const OnboardingQuestionsScreen(),
+        '/admin': (_) => const AdminDashboard(),
+        '/addProduct': (_) => const AddProductScreen(),
+        '/viewProducts': (_) => const ViewProductsScreen(),
+        '/manageUsers': (_) => const ManageUsersScreen(),
       },
     );
   }

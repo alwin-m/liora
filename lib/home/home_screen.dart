@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
@@ -23,35 +24,51 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int index = 0;
+  int _index = 0;
 
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
+  // Memoized CycleAlgorithm — avoid recreating on every Consumer rebuild.
+  CycleAlgorithm? _cachedAlgo;
+  CycleDataModel? _cachedData;
+
+  CycleAlgorithm _getAlgo(CycleDataModel data) {
+    if (_cachedData?.lastPeriodStartDate != data.lastPeriodStartDate ||
+        _cachedData?.averageCycleLength != data.averageCycleLength ||
+        _cachedData?.averagePeriodDuration != data.averagePeriodDuration) {
+      _cachedData = data;
+      _cachedAlgo = CycleAlgorithm(
+        lastPeriod: data.lastPeriodStartDate,
+        cycleLength: data.averageCycleLength,
+        periodLength: data.averagePeriodDuration,
+      );
+    }
+    return _cachedAlgo!;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      _homeUI(),
-      const TrackerScreen(),
-      const ShopScreen(),
-      const ProfileScreen(),
-    ];
-
+    final cs = Theme.of(context).colorScheme;
+    // IndexedStack keeps all pages alive — no rebuild cost on tab switch.
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: LioraTheme.durationMedium,
-        switchInCurve: LioraTheme.curveStandard,
-        switchOutCurve: Curves.easeIn,
-        child: KeyedSubtree(key: ValueKey(index), child: pages[index]),
+      body: IndexedStack(
+        index: _index,
+        children: [
+          _homeUI(),
+          const TrackerScreen(),
+          const ShopScreen(),
+          const ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: LioraTheme.pureWhite,
+          color: cs.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(5),
+              color: Colors.black.withAlpha(8),
               blurRadius: 20,
-              offset: const Offset(0, -5),
+              offset: const Offset(0, -4),
             ),
           ],
         ),
@@ -61,24 +78,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _navItem(0, Icons.home_filled, Icons.home_outlined, "Home"),
+                _navItem(0, Icons.home_filled, Icons.home_outlined, 'Home'),
                 _navItem(
                   1,
                   Icons.calendar_month_rounded,
                   Icons.calendar_month_outlined,
-                  "Track",
+                  'Track',
                 ),
                 _navItem(
                   2,
                   Icons.shopping_bag_rounded,
                   Icons.shopping_bag_outlined,
-                  "Shop",
+                  'Shop',
                 ),
                 _navItem(
                   3,
                   Icons.person_rounded,
                   Icons.person_outline,
-                  "Profile",
+                  'Profile',
                 ),
               ],
             ),
@@ -94,36 +111,39 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData inactiveIcon,
     String label,
   ) {
-    final active = index == i;
+    final cs = Theme.of(context).colorScheme;
+    final active = _index == i;
     return GestureDetector(
-      onTap: () => setState(() => index = i),
+      onTap: () {
+        if (_index != i) setState(() => _index = i);
+      },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: LioraTheme.durationStandard,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        duration: LioraTheme.durationFast,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active
-              ? LioraTheme.blushRose.withAlpha(60)
-              : Colors.transparent,
+          color: active ? cs.primary.withAlpha(30) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              active ? activeIcon : inactiveIcon,
-              color: active ? LioraTheme.textPrimary : LioraTheme.textSecondary,
-              size: 24,
+            AnimatedSwitcher(
+              duration: LioraTheme.durationFast,
+              child: Icon(
+                active ? activeIcon : inactiveIcon,
+                key: ValueKey(active),
+                color: active ? cs.primary : cs.onSurface.withAlpha(100),
+                size: 24,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
-                fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                color: active
-                    ? LioraTheme.textPrimary
-                    : LioraTheme.textSecondary,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? cs.primary : cs.onSurface.withAlpha(100),
               ),
             ),
           ],
@@ -138,20 +158,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Consumer<CycleProvider>(
+      // Selector-style: only rebuild when the meaningful fields change
       builder: (context, provider, _) {
-        if (provider.isLoading) {
-          return Center(child: CircularProgressIndicator(color: cs.primary));
+        if (provider.isLoading || provider.cycleData == null) {
+          return _buildHomeShimmer(cs);
         }
 
         final data = provider.cycleData!;
-        final algo = CycleAlgorithm(
-          lastPeriod: data.lastPeriodStartDate,
-          cycleLength: data.averageCycleLength,
-          periodLength: data.averagePeriodDuration,
-        );
+        final algo = _getAlgo(data); // memoized!
 
         return SafeArea(
           child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(LioraTheme.space20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,6 +188,70 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// Shimmer skeleton shown while cycle data loads — no spinner jank.
+  Widget _buildHomeShimmer(ColorScheme cs) {
+    return SafeArea(
+      child: Shimmer.fromColors(
+        baseColor: cs.surfaceContainerHighest.withAlpha(120),
+        highlightColor: cs.surface,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(LioraTheme.space20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title placeholder
+              Container(
+                width: 100,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(height: LioraTheme.space20),
+              // Calendar placeholder
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
+                ),
+              ),
+              const SizedBox(height: LioraTheme.space24),
+              // Period card placeholder
+              Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(LioraTheme.radiusSheet),
+                ),
+              ),
+              const SizedBox(height: LioraTheme.space24),
+              // Recommended row placeholders
+              Row(
+                children: List.generate(
+                  3,
+                  (_) => Container(
+                    width: 130,
+                    height: 170,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(
+                        LioraTheme.radiusCard,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -417,8 +499,9 @@ class _HomeScreenState extends State<HomeScreen> {
             .limit(5)
             .snapshots(),
         builder: (context, snapshot) {
+          // Shimmer while waiting — lightweight vs spinner
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: cs.primary));
+            return _buildProductShimmerRow(cs);
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -434,6 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: products.length,
             itemBuilder: (_, i) {
               final productData = products[i].data() as Map<String, dynamic>;
@@ -447,6 +531,26 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildProductShimmerRow(ColorScheme cs) {
+    return Shimmer.fromColors(
+      baseColor: cs.surfaceContainerHighest.withAlpha(120),
+      highlightColor: cs.surface,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 4,
+        itemBuilder: (_, __) => Container(
+          width: 130,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
+          ),
+        ),
       ),
     );
   }

@@ -11,12 +11,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:lioraa/Screens/Login_Screen.dart';
+import 'package:lioraa/Screens/login_screen.dart';
 import 'package:lioraa/Screens/change_password_screen.dart';
 import 'package:lioraa/Screens/my_orders_screen.dart';
 import 'package:lioraa/services/cycle_provider.dart';
 import 'package:lioraa/services/cart_provider.dart';
 import 'package:lioraa/services/notification_service.dart';
+import 'package:lioraa/services/theme_provider.dart';
 import 'package:lioraa/core/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoadingName = true;
   Uint8List? _profileImageBytes;
   static const String _profileImageKey = 'local_profile_image';
+  static const String _cachedNameKey = 'liora_cached_user_name';
 
   // Reminder toggles
   bool _cycleRemindersEnabled = false;
@@ -215,9 +217,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchUserName() async {
+    // Show cached name instantly (offline-first)
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(_cachedNameKey);
+    if (cached != null && mounted) {
+      setState(() {
+        userName = cached;
+        _isLoadingName = false;
+      });
+    }
+
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        if (mounted) setState(() => _isLoadingName = false);
+        return;
+      }
 
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -225,9 +240,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .get();
 
       if (doc.exists && doc.data()!.containsKey('name')) {
+        final name = doc['name'] as String;
+        await prefs.setString(_cachedNameKey, name); // cache for next launch
         if (mounted) {
           setState(() {
-            userName = doc['name'];
+            userName = name;
             _isLoadingName = false;
           });
         }
@@ -326,6 +343,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       actions: [
+        // Dark mode toggle
+        Consumer<ThemeProvider>(
+          builder: (_, tp, __) => IconButton(
+            onPressed: tp.toggleDark,
+            icon: Icon(
+              tp.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              size: 20,
+              color: LioraTheme.textSecondary,
+            ),
+            tooltip: tp.isDark ? 'Switch to light' : 'Switch to dark',
+          ),
+        ),
         IconButton(
           onPressed: _logout,
           icon: Icon(
@@ -334,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             size: 20,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }

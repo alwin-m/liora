@@ -137,11 +137,13 @@ class _ShopScreenState extends State<ShopScreen> {
       });
 
       cartProvider.clearCart();
-      _showSuccessSheet(address);
+      if (mounted) _showSuccessSheet(address);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => isProcessing = false);
     }
@@ -282,11 +284,13 @@ class _ShopScreenState extends State<ShopScreen> {
         });
       });
 
-      _showSuccessSheet('$address, $city - $postalCode');
+      if (mounted) _showSuccessSheet('$address, $city - $postalCode');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => isProcessing = false);
     }

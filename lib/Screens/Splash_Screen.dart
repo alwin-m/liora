@@ -7,6 +7,10 @@ import 'package:provider/provider.dart';
 import '../services/cycle_provider.dart';
 import '../core/app_theme.dart';
 
+/// Optimized splash screen.
+/// - Logo animation: 600ms entrance (reduced from 800ms).
+/// - Auth check runs in parallel with the animation, not sequentially.
+/// - Minimum visible time: 700ms to prevent perceptual flash.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,111 +19,111 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late final AnimationController _logoController;
-  late final AnimationController _fadeOutController;
-  late final Animation<double> _scaleAnim;
-  late final Animation<double> _fadeAnim;
-  late final Animation<double> _fadeOutAnim;
-  late final Animation<double> _subtitleSlideAnim;
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+  late final Animation<double> _fade;
+  late final Animation<double> _subtitleFade;
+
+  static const _minVisibleMs = 700;
+  static const _entranceDurationMs = 550;
 
   @override
   void initState() {
     super.initState();
 
-    // Logo entrance animation (fast)
-    _logoController = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: _entranceDurationMs),
     );
 
-    _scaleAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
-    );
+    // scale: 0.88 → 1.0
+    _scale = Tween<double>(
+      begin: 0.88,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
 
-    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+    // full fade: 0 → 1 in first 65% of animation
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoController,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
+        parent: _ctrl,
+        curve: const Interval(0.0, 0.65, curve: Curves.easeOut),
       ),
     );
 
-    _subtitleSlideAnim = Tween<double>(begin: 12.0, end: 0.0).animate(
+    // subtitle fades in during last 50%
+    _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoController,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+        parent: _ctrl,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
       ),
     );
 
-    // Exit animation
-    _fadeOutController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _fadeOutAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _fadeOutController, curve: Curves.easeIn),
-    );
-
-    _logoController.forward();
-
-    // Begin navigation logic immediately (splash is purely cosmetic)
-    _navigate();
-  }
-
-  Future<void> _navigate() async {
-    // Give the logo animation time to breathe (min 900ms)
-    final stopwatch = Stopwatch()..start();
-
-    String route = '/login';
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        final role = doc.data()?['role'] ?? 'user';
-        final profileCompleted = doc.data()?['profileCompleted'] ?? false;
-
-        if (role == 'admin') {
-          route = '/admin';
-        } else if (profileCompleted) {
-          // Pre-load cycle data in parallel
-          if (mounted) {
-            await Provider.of<CycleProvider>(context, listen: false).loadData();
-          }
-          route = '/home';
-        } else {
-          route = '/onboarding';
-        }
-      }
-    } catch (_) {
-      route = '/login';
-    }
-
-    // Ensure minimum splash duration for smooth UX
-    final elapsed = stopwatch.elapsedMilliseconds;
-    if (elapsed < 900) {
-      await Future.delayed(Duration(milliseconds: 900 - elapsed));
-    }
-
-    if (!mounted) return;
-
-    // Smooth fade out before navigating
-    await _fadeOutController.forward();
-
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, route);
+    // Run auth check and animation in parallel
+    final sw = Stopwatch()..start();
+    _ctrl.forward();
+    _navigate(sw);
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _fadeOutController.dispose();
+    _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _navigate(Stopwatch sw) async {
+    String route = '/login';
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Parallel: pre-load cycle data + fetch user role at the same time
+        final results = await Future.wait([
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get()
+              .timeout(const Duration(seconds: 5)),
+          if (mounted)
+            Provider.of<CycleProvider>(
+              context,
+              listen: false,
+            ).loadData().then((_) => null),
+        ]);
+
+        final doc = results[0] as DocumentSnapshot?;
+        if (doc != null && doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          final role = data['role'] ?? 'user';
+          final profileCompleted = data['profileCompleted'] ?? false;
+
+          if (role == 'admin') {
+            route = '/admin';
+          } else if (profileCompleted == true) {
+            route = '/home';
+          } else {
+            route = '/onboarding';
+          }
+        }
+      }
+    } catch (_) {
+      // Offline / network error → gracefully fall back to login
+      route = '/login';
+    }
+
+    // Guarantee minimum splash visibility for smooth UX
+    final elapsed = sw.elapsedMilliseconds;
+    if (elapsed < _minVisibleMs) {
+      await Future<void>.delayed(
+        Duration(milliseconds: _minVisibleMs - elapsed),
+      );
+    }
+
+    if (!mounted) return;
+    // Smooth fade-out of the animation controller before navigate
+    await _ctrl.reverse(from: 0.3).orCancel.catchError((_) {});
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
@@ -127,79 +131,80 @@ class _SplashScreenState extends State<SplashScreen>
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: FadeTransition(
-        opacity: _fadeOutAnim,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [cs.primaryContainer.withAlpha(100), cs.surface],
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [cs.primary.withAlpha(60), cs.surface],
           ),
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _logoController,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnim.value,
-                  child: Transform.scale(
-                    scale: _scaleAnim.value,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Animated icon with gradient background
-                        Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [cs.primary, cs.secondary],
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              LioraTheme.radiusCard,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.favorite_rounded,
-                            size: 44,
-                            color: Colors.white,
-                          ),
+        ),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => Opacity(
+              opacity: _fade.value,
+              child: Transform.scale(
+                scale: _scale.value,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Brand icon
+                    Container(
+                      width: 84,
+                      height: 84,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [cs.primary, cs.secondary],
                         ),
-
-                        const SizedBox(height: LioraTheme.space24),
-
-                        Text(
-                          'Liora',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface,
-                          ),
+                        borderRadius: BorderRadius.circular(
+                          LioraTheme.radiusCard,
                         ),
-
-                        Transform.translate(
-                          offset: Offset(0, _subtitleSlideAnim.value),
-                          child: Opacity(
-                            opacity: _fadeAnim.value,
-                            child: Text(
-                              'care for your rhythm',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: cs.onSurface.withAlpha(140),
-                                letterSpacing: 1.4,
-                              ),
-                            ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: cs.primary.withAlpha(60),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                );
-              },
+
+                    const SizedBox(height: LioraTheme.space24),
+
+                    Text(
+                      'Liora',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+
+                    const SizedBox(height: LioraTheme.space8),
+
+                    Opacity(
+                      opacity: _subtitleFade.value,
+                      child: Text(
+                        'care for your rhythm',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: cs.onSurface.withAlpha(130),
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

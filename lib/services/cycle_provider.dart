@@ -40,11 +40,13 @@ class CycleProvider with ChangeNotifier {
   }
 
   /// Load menstrual cycle data from LOCAL storage only.
-  /// This data NEVER comes from or syncs with backend databases.
-  /// Full offline capability is maintained at all times.
+  /// PRIVACY: This data NEVER comes from or syncs with backend databases.
   Future<void> loadData() async {
-    _isLoading = true;
-    notifyListeners();
+    // Only set loading if we don't already have data (avoids flash on re-load)
+    if (_cycleData == null) {
+      _isLoading = true;
+      // No notifyListeners here — we'll do ONE batch update at the end
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -111,14 +113,15 @@ class CycleProvider with ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('[PRIVACY] Error loading local cycle data: $e');
-      _cycleData = CycleDataModel(
+      debugPrint('[CycleProvider] Error loading local data: $e');
+      _cycleData ??= CycleDataModel(
         lastPeriodStartDate: DateTime.now().subtract(const Duration(days: 14)),
         averageCycleLength: 28,
         averagePeriodDuration: 5,
       );
     }
 
+    // Single batch update — one rebuild, not two
     _isLoading = false;
     notifyListeners();
   }
@@ -189,9 +192,7 @@ class CycleProvider with ChangeNotifier {
     return 60;
   }
 
-  /// Save cycle data to LOCAL storage only using encrypted SharedPreferences.
-  /// This is the ONLY persistence mechanism for medical data.
-  /// No network calls, no backend uploads, no sync.
+  /// Save cycle data to LOCAL storage only.
   Future<void> _saveLocalOnly(CycleDataModel data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -202,9 +203,8 @@ class CycleProvider with ChangeNotifier {
           'history': _history.map((e) => e.toJson()).toList(),
         }),
       );
-      debugPrint('[PRIVACY] Cycle data saved to LOCAL storage only');
     } catch (e) {
-      debugPrint('[PRIVACY] Error saving to local storage: $e');
+      debugPrint('[CycleProvider] Error saving to local storage: $e');
     }
   }
 

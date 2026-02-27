@@ -262,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
         fontSize: 28,
         fontWeight: FontWeight.w600,
         color: LioraTheme.textPrimary,
-        letterSpacing: 2,
+        letterSpacing: 3,
       ),
     );
   }
@@ -270,11 +270,17 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= CALENDAR =================
 
   Widget _calendarCard(CycleAlgorithm algo, ColorScheme cs) {
-    return Card(
-      color: LioraTheme.calendarBgIvoryMist,
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: LioraTheme.calendarBackground,
         borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
+        boxShadow: [
+          BoxShadow(
+            color: LioraTheme.warmShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(LioraTheme.space12),
@@ -302,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
             titleTextStyle: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: LioraTheme.calendarTextCharcoalPlum,
+              color: LioraTheme.calendarText,
             ),
           ),
         ),
@@ -322,20 +328,20 @@ class _HomeScreenState extends State<HomeScreen> {
     bool today = false,
   }) {
     Color bgColor = Colors.transparent;
-    Color textColor = LioraTheme.calendarTextCharcoalPlum;
+    Color textColor = LioraTheme.calendarText;
 
     if (type == DayType.period) {
-      // Bleeding days: Filled circle with Soft Garnet
-      bgColor = LioraTheme.calendarBleedingRoyalBerry;
-      textColor = LioraTheme.pureWhite;
+      // Period days: Rose Clay with 20% transparency
+      bgColor = LioraTheme.calendarPeriod;
+      textColor = LioraTheme.cardBackground;
     } else if (type == DayType.ovulation) {
-      // Ovulation day: Filled circle with Muted Olive Jade
-      bgColor = LioraTheme.calendarOvulationSageEmerald;
-      textColor = LioraTheme.pureWhite;
+      // Ovulation: Dusty Mauve with 15% transparency
+      bgColor = LioraTheme.calendarOvulation;
+      textColor = LioraTheme.cardBackground;
     } else if (type == DayType.fertile) {
-      // Fertile window: Light background tint (gentle vitality)
-      bgColor = LioraTheme.calendarFertileSoftChampagne.withAlpha(100);
-      textColor = LioraTheme.calendarTextCharcoalPlum;
+      // Fertile window: Soft Sage light gradient
+      bgColor = LioraTheme.calendarFertile.withAlpha(120);
+      textColor = LioraTheme.calendarText;
     }
 
     return AnimatedContainer(
@@ -343,16 +349,14 @@ class _HomeScreenState extends State<HomeScreen> {
       curve: LioraTheme.curveStandard,
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: selected
-            ? LioraTheme.calendarTodayRoyalMauve.withAlpha(120)
-            : bgColor,
+        color: selected ? LioraTheme.calendarSelected.withAlpha(180) : bgColor,
         borderRadius: BorderRadius.circular(
           (type == DayType.period || type == DayType.ovulation) && !selected
               ? 50
               : 10,
         ),
         border: today
-            ? Border.all(color: LioraTheme.calendarTodayRoyalMauve, width: 2)
+            ? Border.all(color: LioraTheme.calendarToday, width: 2)
             : null,
         boxShadow:
             (type == DayType.period || type == DayType.ovulation) && !selected
@@ -372,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: (selected || today) ? FontWeight.bold : FontWeight.w500,
-            color: (selected) ? LioraTheme.pureWhite : textColor,
+            color: (selected) ? LioraTheme.cardBackground : textColor,
           ),
         ),
       ),
@@ -394,14 +398,14 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(LioraTheme.space24),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [LioraTheme.blushRose, LioraTheme.coralSoft],
+            colors: [LioraTheme.roseClay, LioraTheme.champagneBeige],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(LioraTheme.radiusSheet),
           boxShadow: [
             BoxShadow(
-              color: LioraTheme.blushRose.withAlpha(40),
+              color: LioraTheme.roseClay.withAlpha(30),
               blurRadius: 30,
               offset: const Offset(0, 15),
             ),
@@ -437,7 +441,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: LioraTheme.pureWhite.withAlpha(180),
+                      color: LioraTheme.cardBackground.withAlpha(200),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -1079,12 +1083,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(LioraTheme.space12),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: LioraTheme.softSageLight.withAlpha(80),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.check_rounded,
-                  color: Colors.green.shade700,
+                  color: LioraTheme.softSage,
                   size: 32,
                 ),
               ),

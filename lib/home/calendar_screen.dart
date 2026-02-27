@@ -90,7 +90,7 @@ class _TrackerScreenState extends State<TrackerScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: LioraTheme.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -106,7 +106,7 @@ class _TrackerScreenState extends State<TrackerScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: LioraTheme.sectionDivider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -120,7 +120,7 @@ class _TrackerScreenState extends State<TrackerScreen>
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.pink[700],
+                      color: LioraTheme.roseClay,
                     ),
                   ),
                   const Spacer(),
@@ -140,13 +140,13 @@ class _TrackerScreenState extends State<TrackerScreen>
                           Icon(
                             Icons.history_rounded,
                             size: 48,
-                            color: Colors.grey[300],
+                            color: LioraTheme.textTertiary,
                           ),
                           const SizedBox(height: 16),
                           const Text(
                             'Your cycle history will appear here after\nyour first completed cycle.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: LioraTheme.textTertiary),
                           ),
                         ],
                       ),
@@ -164,7 +164,7 @@ class _TrackerScreenState extends State<TrackerScreen>
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[500],
+                                color: LioraTheme.textTertiary,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -185,11 +185,11 @@ class _TrackerScreenState extends State<TrackerScreen>
     final start = entry.actualLoggedDate ?? entry.predictedNextDate;
     final String monthName = _months[start.month - 1];
 
-    Color indicatorColor = Colors.green;
+    Color indicatorColor = LioraTheme.softSage;
     if (entry.deviationDays.abs() > 3) {
-      indicatorColor = Colors.red;
+      indicatorColor = LioraTheme.errorColor;
     } else if (entry.deviationDays.abs() > 0) {
-      indicatorColor = Colors.amber;
+      indicatorColor = LioraTheme.champagneBeige;
     }
 
     String deviationText = "On-time cycle";
@@ -213,7 +213,9 @@ class _TrackerScreenState extends State<TrackerScreen>
                   shape: BoxShape.circle,
                 ),
               ),
-              Expanded(child: Container(width: 2, color: Colors.grey[200])),
+              Expanded(
+                child: Container(width: 2, color: LioraTheme.sectionDivider),
+              ),
             ],
           ),
           const SizedBox(width: 16),
@@ -233,7 +235,10 @@ class _TrackerScreenState extends State<TrackerScreen>
                   const SizedBox(height: 4),
                   Text(
                     'Started on ${start.day} $monthName',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    style: TextStyle(
+                      color: LioraTheme.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -242,7 +247,7 @@ class _TrackerScreenState extends State<TrackerScreen>
                     children: [
                       _infoBadge(
                         '${entry.observedCycleLengthDays} days',
-                        Colors.grey[100]!,
+                        LioraTheme.secondaryBackground,
                       ),
                       _infoBadge(
                         deviationText,
@@ -256,7 +261,10 @@ class _TrackerScreenState extends State<TrackerScreen>
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         "Predicted: ${entry.predictedNextDate.day} ${_months[entry.predictedNextDate.month - 1]}",
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: LioraTheme.textTertiary,
+                        ),
                       ),
                     ),
                 ],
@@ -352,11 +360,11 @@ class _TrackerScreenState extends State<TrackerScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: LioraTheme.spaceLarge),
       decoration: BoxDecoration(
-        color: LioraTheme.calendarBgIvoryMist,
+        color: LioraTheme.calendarBackground,
         borderRadius: BorderRadius.circular(LioraTheme.radiusSheet),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(5),
+            color: LioraTheme.warmShadow,
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -377,11 +385,11 @@ class _TrackerScreenState extends State<TrackerScreen>
         calendarStyle: const CalendarStyle(
           outsideDaysVisible: false,
           defaultTextStyle: TextStyle(
-            color: LioraTheme.calendarTextCharcoalPlum,
+            color: LioraTheme.calendarText,
             fontWeight: FontWeight.w500,
           ),
           weekendTextStyle: TextStyle(
-            color: LioraTheme.calendarTextCharcoalPlum,
+            color: LioraTheme.calendarText,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -395,16 +403,16 @@ class _TrackerScreenState extends State<TrackerScreen>
           formatButtonVisible: false,
           leftChevronIcon: const Icon(
             Icons.chevron_left_rounded,
-            color: LioraTheme.calendarTextCharcoalPlum,
+            color: LioraTheme.calendarText,
           ),
           rightChevronIcon: const Icon(
             Icons.chevron_right_rounded,
-            color: LioraTheme.calendarTextCharcoalPlum,
+            color: LioraTheme.calendarText,
           ),
           titleTextStyle: GoogleFonts.playfairDisplay(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: LioraTheme.calendarTextCharcoalPlum,
+            color: LioraTheme.calendarText,
           ),
         ),
       ),
@@ -436,12 +444,12 @@ class _TrackerScreenState extends State<TrackerScreen>
               margin: const EdgeInsets.all(LioraTheme.space4),
               decoration: BoxDecoration(
                 color: isCurrent
-                    ? LioraTheme.blushRose.withAlpha(80)
-                    : LioraTheme.pureWhite,
+                    ? LioraTheme.roseClay.withAlpha(60)
+                    : LioraTheme.cardBackground,
                 borderRadius: BorderRadius.circular(LioraTheme.radiusMedium),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha(5),
+                    color: LioraTheme.warmShadow,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -471,20 +479,20 @@ class _TrackerScreenState extends State<TrackerScreen>
   Widget _dayCell(DateTime day, CycleAlgorithm algo, ColorScheme cs) {
     final DayType type = algo.getType(day);
     Color? bgColor;
-    Color textColor = LioraTheme.calendarTextCharcoalPlum;
+    Color textColor = LioraTheme.calendarText;
 
     if (type == DayType.period) {
-      // Bleeding days: Filled circle with Soft Garnet (warm, intimate)
-      bgColor = LioraTheme.calendarBleedingRoyalBerry;
-      textColor = LioraTheme.pureWhite;
+      // Period days: Rose Clay
+      bgColor = LioraTheme.calendarPeriod;
+      textColor = LioraTheme.cardBackground;
     } else if (type == DayType.ovulation) {
-      // Ovulation day: Filled circle with Muted Olive Jade (fertility, growth)
-      bgColor = LioraTheme.calendarOvulationSageEmerald;
-      textColor = LioraTheme.pureWhite;
+      // Ovulation: Dusty Mauve
+      bgColor = LioraTheme.calendarOvulation;
+      textColor = LioraTheme.cardBackground;
     } else if (type == DayType.fertile) {
-      // Fertile window: Light background tint (gentle vitality)
-      bgColor = LioraTheme.calendarFertileSoftChampagne.withAlpha(100);
-      textColor = LioraTheme.calendarTextCharcoalPlum;
+      // Fertile: Soft Sage light
+      bgColor = LioraTheme.calendarFertile.withAlpha(120);
+      textColor = LioraTheme.calendarText;
     }
 
     return Center(
@@ -529,10 +537,7 @@ class _TrackerScreenState extends State<TrackerScreen>
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          border: Border.all(
-            color: LioraTheme.calendarTodayRoyalMauve,
-            width: 2.5,
-          ),
+          border: Border.all(color: LioraTheme.calendarToday, width: 2.5),
           shape: BoxShape.circle,
         ),
         child: Center(
@@ -540,7 +545,7 @@ class _TrackerScreenState extends State<TrackerScreen>
             "${day.day}",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: LioraTheme.calendarTextCharcoalPlum,
+              color: LioraTheme.calendarText,
               fontSize: 14,
             ),
           ),
@@ -556,11 +561,11 @@ class _TrackerScreenState extends State<TrackerScreen>
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: LioraTheme.calendarTodayRoyalMauve.withAlpha(120),
+          color: LioraTheme.calendarSelected.withAlpha(180),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: LioraTheme.calendarTodayRoyalMauve.withAlpha(50),
+              color: LioraTheme.calendarSelected.withAlpha(50),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -571,7 +576,7 @@ class _TrackerScreenState extends State<TrackerScreen>
             "${day.day}",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: LioraTheme.pureWhite,
+              color: LioraTheme.cardBackground,
               fontSize: 14,
             ),
           ),
@@ -644,11 +649,11 @@ class _TrackerScreenState extends State<TrackerScreen>
           vertical: 18,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: LioraTheme.cardBackground,
           borderRadius: BorderRadius.circular(LioraTheme.radiusCard),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(10),
+              color: LioraTheme.warmShadow,
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -667,17 +672,20 @@ class _TrackerScreenState extends State<TrackerScreen>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: Colors.pink[800],
+                      color: LioraTheme.roseClay,
                     ),
                   ),
                   Text(
                     "${_months[selectedDay.month - 1]} ${selectedDay.day}, ${selectedDay.year}",
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: LioraTheme.textSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.history_rounded, color: Colors.pink, size: 28),
+            Icon(Icons.history_rounded, color: LioraTheme.roseClay, size: 28),
           ],
         ),
       ),

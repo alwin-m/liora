@@ -7,10 +7,10 @@ import 'package:provider/provider.dart';
 import '../services/cycle_provider.dart';
 import '../core/app_theme.dart';
 
-/// Optimized splash screen.
-/// - Logo animation: 600ms entrance (reduced from 800ms).
-/// - Auth check runs in parallel with the animation, not sequentially.
-/// - Minimum visible time: 700ms to prevent perceptual flash.
+/// Optimized splash screen — Luxury Minimal.
+/// - Off-white background with Rose Clay logo
+/// - Soft Sage tagline
+/// - Smooth 600ms entrance animation
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -128,15 +128,19 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
+      // Off-white background per luxury minimal spec
+      backgroundColor: LioraTheme.primaryBackground,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [cs.primary.withAlpha(60), cs.surface],
+            colors: [
+              // Subtle Rose Clay tint at top, fading to off-white
+              LioraTheme.roseClay.withAlpha(25),
+              LioraTheme.primaryBackground,
+            ],
           ),
         ),
         child: Center(
@@ -149,22 +153,25 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Brand icon
+                    // Brand icon — Rose Clay gradient
                     Container(
                       width: 84,
                       height: 84,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [cs.primary, cs.secondary],
+                          colors: [
+                            LioraTheme.roseClay,
+                            LioraTheme.roseClayLight,
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(
                           LioraTheme.radiusCard,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: cs.primary.withAlpha(60),
+                            color: LioraTheme.roseClay.withAlpha(40),
                             blurRadius: 24,
                             offset: const Offset(0, 12),
                           ),
@@ -184,12 +191,13 @@ class _SplashScreenState extends State<SplashScreen>
                       style: GoogleFonts.playfairDisplay(
                         fontSize: 42,
                         fontWeight: FontWeight.w600,
-                        color: cs.onSurface,
+                        color: LioraTheme.textPrimary,
                       ),
                     ),
 
                     const SizedBox(height: LioraTheme.space8),
 
+                    // Tagline in Soft Sage
                     Opacity(
                       opacity: _subtitleFade.value,
                       child: Text(
@@ -197,7 +205,7 @@ class _SplashScreenState extends State<SplashScreen>
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
-                          color: cs.onSurface.withAlpha(130),
+                          color: LioraTheme.softSage,
                           letterSpacing: 1.4,
                         ),
                       ),

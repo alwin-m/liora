@@ -73,14 +73,11 @@ class LioraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Liora',
       theme: LioraTheme.lightTheme,
-      darkTheme: LioraTheme.darkTheme,
-      themeMode: themeProvider.themeMode,
+      themeMode: ThemeMode.light,
       // Route table — eagerly pre-registered (no lazy overhead on first push)
       routes: {
         '/': (_) => const SplashScreen(),

@@ -17,7 +17,6 @@ import 'package:lioraa/Screens/my_orders_screen.dart';
 import 'package:lioraa/services/cycle_provider.dart';
 import 'package:lioraa/services/cart_provider.dart';
 import 'package:lioraa/services/notification_service.dart';
-import 'package:lioraa/services/theme_provider.dart';
 import 'package:lioraa/core/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,8 +30,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String userName = 'User';
   bool _isLoadingName = true;
   Uint8List? _profileImageBytes;
+  String? _profileAssetPath;
   static const String _profileImageKey = 'local_profile_image';
   static const String _cachedNameKey = 'liora_cached_user_name';
+  static const String _onboardingCompleteKey = 'profile_onboarding_complete';
+
+  // Avatar presets with psychological traits
+  final List<Map<String, String>> _avatars = [
+    {
+      'path': 'assets/avatars/trendsetter.png',
+      'name': 'Trendsetter',
+      'personality': 'Creative, Bold & Modern',
+    },
+    {
+      'path': 'assets/avatars/minimalist.png',
+      'name': 'Minimalist',
+      'personality': 'Calm, Elegant & Focused',
+    },
+    {
+      'path': 'assets/avatars/free_spirit.png',
+      'name': 'Free Spirit',
+      'personality': 'Adventurous, Warm & Kind',
+    },
+    {
+      'path': 'assets/avatars/intellectual.png',
+      'name': 'Intellectual',
+      'personality': 'Wise, Observant & Thoughtful',
+    },
+    {
+      'path': 'assets/avatars/dreamer.png',
+      'name': 'Dreamer',
+      'personality': 'Whimsical, Ethereal & Gentle',
+    },
+    {
+      'path': 'assets/avatars/protector.png',
+      'name': 'Protector',
+      'personality': 'Strong, Confident & Empowered',
+    },
+  ];
 
   // Reminder toggles
   bool _cycleRemindersEnabled = false;
@@ -43,7 +78,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _fetchUserName();
-    _loadLocalProfileImage();
+    _loadLocalProfileImage().then((_) {
+      _checkOnboarding();
+    });
     _loadReminderPreferences();
   }
 
@@ -59,10 +96,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadLocalProfileImage() async {
     final prefs = await SharedPreferences.getInstance();
-    final base64Image = prefs.getString(_profileImageKey);
-    if (base64Image != null) {
-      setState(() {
-        _profileImageBytes = base64Decode(base64Image);
+    final imageValue = prefs.getString(_profileImageKey);
+    if (imageValue != null) {
+      if (imageValue.startsWith('assets/')) {
+        setState(() {
+          _profileAssetPath = imageValue;
+          _profileImageBytes = null;
+        });
+      } else {
+        try {
+          setState(() {
+            _profileImageBytes = base64Decode(imageValue);
+            _profileAssetPath = null;
+          });
+        } catch (_) {
+          // Handle corrupted data
+        }
+      }
+    }
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isComplete = prefs.getBool(_onboardingCompleteKey) ?? false;
+
+    // If no profile image is set and onboarding not complete, show it
+    if (!isComplete &&
+        _profileImageBytes == null &&
+        _profileAssetPath == null) {
+      // Small delay to ensure UI is ready
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) _showAvatarPicker(isOnboarding: true);
       });
     }
   }
@@ -84,8 +148,280 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _profileImageBytes = bytes;
+        _profileAssetPath = null;
       });
     }
+  }
+
+  void _selectAvatar(String assetPath) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileImageKey, assetPath);
+    await prefs.setBool(_onboardingCompleteKey, true);
+
+    setState(() {
+      _profileAssetPath = assetPath;
+      _profileImageBytes = null;
+    });
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  void _showAvatarPicker({bool isOnboarding = false}) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: !isOnboarding,
+      barrierLabel: 'Avatar Picker',
+      barrierColor: Colors.black.withAlpha(160),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) => const SizedBox(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: FadeTransition(
+            opacity: anim1,
+            child: ScaleTransition(
+              scale: anim1.drive(
+                Tween(
+                  begin: 0.85,
+                  end: 1.0,
+                ).chain(CurveTween(curve: Curves.easeOutCubic)),
+              ),
+              child: Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(240),
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(20),
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: LioraTheme.roseClay.withAlpha(40),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            isOnboarding ? 'Welcome to Liora' : 'Select Avatar',
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: LioraTheme.roseClay,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isOnboarding
+                                ? "Let's choose a personality that best represents you, or upload your own photo."
+                                : "Give your profile a personal touch by choosing a personality avatar.",
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: LioraTheme.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Flexible(
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const BouncingScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 16,
+                                    childAspectRatio: 0.82,
+                                  ),
+                              itemCount: _avatars.length,
+                              itemBuilder: (context, index) {
+                                final avatar = _avatars[index];
+                                final isSelected =
+                                    _profileAssetPath == avatar['path'];
+                                return GestureDetector(
+                                  onTap: () => _selectAvatar(avatar['path']!),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? LioraTheme.roseClay
+                                            : Colors.transparent,
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: [
+                                        if (isSelected)
+                                          BoxShadow(
+                                            color: LioraTheme.roseClay
+                                                .withAlpha(40),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 8),
+                                          ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(21),
+                                      child: Stack(
+                                        children: [
+                                          Image.asset(
+                                            avatar['path']!,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                          ),
+                                          Positioned(
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    Colors.black.withAlpha(180),
+                                                  ],
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    avatar['name']!,
+                                                    style: GoogleFonts.inter(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    avatar['personality']!,
+                                                    style: GoogleFonts.inter(
+                                                      color: Colors.white
+                                                          .withAlpha(200),
+                                                      fontSize: 8,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _pickImage();
+                                    if (isOnboarding) {
+                                      SharedPreferences.getInstance().then((
+                                        prefs,
+                                      ) {
+                                        prefs.setBool(
+                                          _onboardingCompleteKey,
+                                          true,
+                                        );
+                                      });
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    'Upload Own',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    foregroundColor: LioraTheme.textPrimary,
+                                    side: BorderSide(
+                                      color: LioraTheme.textTertiary.withAlpha(
+                                        50,
+                                      ),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (!isOnboarding) ...[
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      backgroundColor: LioraTheme.roseClay,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Done',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showAboutLeora() {
@@ -167,7 +503,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'GitHub Repository',
                             style: GoogleFonts.inter(
                               fontSize: 13,
-                              color: LioraTheme.blushRose,
+                              color: LioraTheme.roseClay,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -188,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'Close',
                             style: GoogleFonts.inter(
                               fontSize: 16,
-                              color: LioraTheme.blushRose,
+                              color: LioraTheme.roseClay,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -286,9 +622,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         await cycleProvider.clearLocalData();
 
-        // Clear local profile image
+        // Clear local profile image and onboarding state
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(_profileImageKey);
+        await prefs.remove(_onboardingCompleteKey);
 
         // Clear local cart data
         if (mounted) {
@@ -343,23 +680,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       actions: [
-        // Dark mode toggle
-        Consumer<ThemeProvider>(
-          builder: (_, tp, __) => IconButton(
-            onPressed: tp.toggleDark,
-            icon: Icon(
-              tp.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              size: 20,
-              color: LioraTheme.textSecondary,
-            ),
-            tooltip: tp.isDark ? 'Switch to light' : 'Switch to dark',
-          ),
-        ),
         IconButton(
           onPressed: _logout,
           icon: Icon(
             Icons.logout_rounded,
-            color: LioraTheme.textSecondary.withAlpha(150),
+            color: LioraTheme.textTertiary,
             size: 20,
           ),
         ),
@@ -379,7 +704,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             // Luxury Profile Image Ring
             GestureDetector(
-              onTap: _pickImage,
+              onTap: () => _showAvatarPicker(),
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
@@ -389,7 +714,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: LioraTheme.blushRose,
+                        color: LioraTheme.roseClay,
                         width: 2.5,
                       ),
                       boxShadow: [
@@ -403,8 +728,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(60),
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: _profileImageBytes != null
+                        duration: const Duration(milliseconds: 400),
+                        child: _profileAssetPath != null
+                            ? Image.asset(
+                                _profileAssetPath!,
+                                key: ValueKey(_profileAssetPath),
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              )
+                            : _profileImageBytes != null
                             ? Image.memory(
                                 _profileImageBytes!,
                                 key: ValueKey(_profileImageBytes.hashCode),
@@ -414,7 +747,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               )
                             : Container(
                                 key: const ValueKey('placeholder'),
-                                color: LioraTheme.lavenderMuted.withAlpha(100),
+                                color: LioraTheme.dustyMauveLight.withAlpha(
+                                  100,
+                                ),
                                 child: const Icon(
                                   Icons.person_outline_rounded,
                                   size: 50,
@@ -539,12 +874,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: LioraTheme.sageGreen.withAlpha(50),
+                    color: LioraTheme.softSageLight.withAlpha(80),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.calendar_today_rounded,
-                    color: LioraTheme.sageGreen,
+                    color: LioraTheme.softSage,
                     size: 20,
                   ),
                 ),
@@ -687,7 +1022,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: LioraTheme.lavenderMuted.withAlpha(40),
+            color: LioraTheme.dustyMauveLight.withAlpha(60),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -747,12 +1082,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: LioraTheme.sageGreen.withAlpha(40),
+            color: LioraTheme.softSageLight.withAlpha(60),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: LioraTheme.textPrimary, size: 20),
         ),
-        activeThumbColor: LioraTheme.blushRose,
+        activeThumbColor: LioraTheme.softSage,
         title: Text(
           title,
           style: GoogleFonts.inter(
@@ -800,9 +1135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
           await cycleProvider.clearLocalData();
 
-          // Clear local profile image
+          // Clear local profile image and onboarding state
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove(_profileImageKey);
+          await prefs.remove(_onboardingCompleteKey);
 
           // Clear local cart data
           if (mounted) {

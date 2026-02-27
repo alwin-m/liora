@@ -1,4 +1,3 @@
-
 /*import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -603,7 +602,6 @@ import 'package:http/http.dart' as http;
 const String cloudName = 'ddr1p1mv7';
 const String uploadPreset = 'products_unsigned';
 
-
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
 
@@ -643,8 +641,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
         setState(() => imageBytes = bytes);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Image pick error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Image pick error: $e')));
+      }
     }
   }
 
@@ -680,9 +681,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (nameController.text.isEmpty ||
         priceController.text.isEmpty ||
         stockController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fill all required fields')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fill all required fields')));
       return;
     }
 
@@ -710,13 +711,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Product added')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Product added')));
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -745,8 +748,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   border: Border.all(color: Colors.pinkAccent),
                 ),
                 child: imageBytes == null
-                    ? const Icon(Icons.add_a_photo,
-                        size: 40, color: Colors.pinkAccent)
+                    ? const Icon(
+                        Icons.add_a_photo,
+                        size: 40,
+                        color: Colors.pinkAccent,
+                      )
                     : ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: Image.memory(imageBytes!, fit: BoxFit.cover),
@@ -789,8 +795,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _field(TextEditingController c, String label,
-      {bool isNumber = false}) {
+  Widget _field(
+    TextEditingController c,
+    String label, {
+    bool isNumber = false,
+  }) {
     return TextField(
       controller: c,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,

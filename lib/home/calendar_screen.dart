@@ -236,13 +236,14 @@ class _TrackerScreenState extends State<TrackerScreen>
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       _infoBadge(
                         '${entry.observedCycleLengthDays} days',
                         Colors.grey[100]!,
                       ),
-                      const SizedBox(width: 8),
                       _infoBadge(
                         deviationText,
                         indicatorColor.withAlpha(20),

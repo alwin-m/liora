@@ -1,24 +1,26 @@
 # Liora - Private Mobile Application
 
 
-![Flutter](https://img.shields.io/badge/Flutter-3.8.1-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-3.8.1-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-3.19.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth/Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-ML%20Insights-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
 ## Project Overview
 
-**Liora** is a sophisticated, enterprise-grade private mobile application designed to provide a holistic wellness experience. It combines advanced menstrual health tracking with a seamless integrated marketplace. Built using the **Flutter** framework and **Dart**, Liora leverages high-performance state management and a robust cloud backend to ensure a secure, private, and responsive user experience.
+**Liora** is a sophisticated, enterprise-grade private mobile application designed to provide a holistic wellness experience. It combines advanced menstrual health tracking with a seamless integrated marketplace. Built using the **Flutter** framework and **Dart**, Liora leverages high-performance state management, a robust cloud backend, and **on-device Machine Learning (TensorFlow Lite)** to ensure a secure, private, and highly personalized user experience.
 
 ---
 
 ## Application Purpose
 
 Liora is engineered to empower users by providing:
-- **Intelligent Tracking:** Data-driven insights into menstrual cycles using custom algorithms.
+- **Intelligent Tracking (AI-Powered):** Data-driven insights into menstrual cycles using personalized ML models (Accuracies >75%).
 - **Wellness Marketplace:** A curated shop for health and wellness products with integrated order management.
-- **Data Privacy:** A private-first approach where sensitive health data is handled with strict security protocols.
+- **Data Privacy (Privacy-First):** All sensitive health predictions and ML inference happen 100% locally on-device.
 - **Administrative Control:** A comprehensive backend suite for managing users and inventory.
+- **Personalized Recommendations:** Dynamic diet and wellness advice based on current cycle phases.
 
 ---
 
@@ -26,7 +28,7 @@ Liora is engineered to empower users by providing:
 
 | Platform | Support Status | Notes |
 | :--- | :--- | :--- |
-| **Android** | ✅ **Current Release** | Optimized for Android 10 and above. |
+| **Android** | ✅ **Current Release** | Optimized for Android 10 and above with ML support. |
 | **iOS** | ⏳ Planned | Future compatibility via Apple App Store. |
 | **Web/Desktop** | ⏳ Planned | Cross-platform expansion in roadmap. |
 
@@ -35,14 +37,16 @@ Liora is engineered to empower users by providing:
 ## Technology Stack
 
 Liora utilizes a modern, scalable technology stack:
-- **Core Framework:** [Flutter](https://flutter.dev/) (SDK ^3.8.1)
+- **Core Framework:** [Flutter](https://flutter.dev/) (SDK ^3.19.x)
 - **Programming Language:** [Dart](https://dart.dev/)
+- **Machine Learning:** [TensorFlow Lite](https://www.tensorflow.org/lite) for on-device inference.
 - **Backend-as-a-Service (BaaS):** [Firebase](https://firebase.google.com/)
     - **Authentication:** Secure user identity management.
-    - **Cloud Firestore:** Real-time NoSQL database for cycle tracking and shop data.
+    - **Cloud Firestore:** Real-time NoSQL database.
     - **Cloud Storage:** Media assets and user profile storage.
 - **State Management:** [Provider](https://pub.dev/packages/provider)
 - **Key Dependencies:**
+    - `tflite_flutter`: For on-device ML model execution.
     - `table_calendar`: For intuitive cycle visualization.
     - `cached_network_image`: For optimized shop asset loading.
     - `google_fonts`: For premium typography.
@@ -55,8 +59,8 @@ Liora utilizes a modern, scalable technology stack:
 The project follows a **Modular Layered Architecture**, emphasizing separation of concerns and maintainability. By decoupled business logic from the UI, the application ensures high testability and scalability.
 
 - **Presentation Layer:** State-aware widgets (Provider-based) and screen compositions.
-- **Business Logic Layer (Services):** Providers and Service classes handling data flow and calculations.
-- **Data Layer (Models):** Strongly typed Dart models for consistent data handling.
+- **Business Logic Layer (Services/AI):** Providers, Service classes, and ML Inference Service handling data calculations.
+- **Data Layer (Models):** Strongly typed Dart models for consistent data handling (e.g., `MLCycleData`).
 - **Core Layer:** Shared utilities, themes, and application-wide configurations.
 
 ---
@@ -70,11 +74,11 @@ Below is the structural representation of the core application logic:
 lib/
 ├── admin/          # Administrative dashboards and management tools
 ├── core/           # App-wide constants, themes, and session management
-├── home/           # Main dashboard, calendar, and cycle algorithms
-├── models/         # Data structures and entity definitions
+├── home/           # Main dashboard and enhanced cycle algorithms
+├── models/         # Data structures (Cart, Products, MLCycleData, etc.)
 ├── onboarding/     # User entry flow and welcome screens
-├── screens/        # Authentication and general purpose application screens
-├── services/       # Providers, API connectors, and business logic
+├── screens/        # Authentication, AI settings, and insights panels
+├── services/       # ML Inference, AI services, and business logic
 └── shop/           # Marketplace interface and commerce features
 ```
 
@@ -86,55 +90,55 @@ lib/
 | :--- | :--- |
 | **Admin** | Managing user roles, inventory updates, and viewing system-wide orders. |
 | **Core** | Centralized theme data (`app_theme.dart`) and global session state. |
-| **Home** | The application's heartbeat, including `cycle_algorithm.dart` for period predictions. |
-| **Models** | Defines `Product`, `Order`, `CartItem`, and `CycleData` schemas. |
+| **Home** | The application's heartbeat, featuring `enhanced_cycle_algorithm.dart`. |
+| **AI/ML Services** | `MLInferenceService`, `AIService`, and `JournalAnalysisService`. |
+| **Models** | Defines `Product`, `Order`, `MLCycleData`, and others. |
 | **Onboarding** | Handles the initial user experience and profile initialization. |
-| **Screens** | Contains `Login_Screen`, `Signup_Screen`, and `MyOrdersScreen`. |
-| **Services** | Logic for `CartProvider`, `OrderService`, and `ProductService`. |
-| **Shop** | The `ShopScreen` implementation including product browsing and interaction. |
+| **Screens** | Contains `Login_Screen`, `CycleAIInsightsPanel`, and `AISettingsScreen`. |
+| **Services** | Logic for `CartProvider`, `WellnessRecommendationService`, and `MLTrainer`. |
+| **Shop** | The `ShopScreen` implementation including product browsing. |
 
 ---
 
 ## Installation & Local Development Setup
 
 ### Prerequisites
-- **Flutter SDK:** ^3.8.1
+- **Flutter SDK:** ^3.19.x
 - **Dart SDK:** Compatible with the installed Flutter version.
+- **Python (Optional):** Required only if re-training ML models using `train_cycle_model.py`.
 - **Android Studio / VS Code:** With Flutter and Dart plugins.
-- **Java Development Kit (JDK):** Version 11 or 17.
 
 ### Step-by-Step Setup
 1. **Clone the Repository:**
    ```bash
    git clone <repository-url>
-   cd lioraa
+   cd liora
    ```
 2. **Install Dependencies:**
    ```bash
    flutter pub get
    ```
-3. **Configure Firebase:**
-   As this is a private project, you must provide your own `google-services.json` (for Android) and initialize Firebase using the FlutterFire CLI or by manually updating `firebase_options.dart`.
+3. **Download/Train ML Model:**
+   - Run `python train_cycle_model.py` to generate the `.tflite` model.
+   - Place the model file in the `assets/` directory.
+
+4. **Configure Firebase:**
+   As this is a private project, you must provide your own `google-services.json` (for Android) and update `firebase_options.dart`.
 
 ---
 
-## Environment Configuration & API Setup
+## AI Implementation Guides
 
-Before running the application, ensure the following configurations are in place:
-1. **Firebase Project:** Create a Firebase project and enable Auth (Email/Password), Firestore, and Storage.
-2. **Manual Configuration:**
-   - Update `firebase_options.dart` with your project-specific credentials.
-   - Ensure the `android/app/build.gradle` file reflects your unique application ID.
-3. **API Keys:** Any third-party API keys (if applicable) should be placed in a `.env` file or structured configuration class.
+For detailed technical information on the AI/ML system, refer to the following local documents:
+- [Quickstart Checklist](ML_QUICKSTART_CHECKLIST.md) - **Start Here**
+- [Technical Roadmap](TECHNICAL_ROADM.md) - Feature implementation status.
+- [AI Integration Guide](AI_INTEGRATION_GUIDE.md) - Service-level details.
+- [ML Architecture Reference](ML_ARCHITECTURE_REFERENCE.md) - Neural network specifics.
+- [Implementation Summary](AI_IMPLEMENTATION_SUMMARY.md) - Project overview.
 
 ---
 
 ## Running the Application
-
-### Using VS Code
-1. Open the project folder in VS Code.
-2. Ensure an Android emulator or physical device is connected (`flutter devices`).
-3. Press `F5` or navigate to the `Run and Debug` tab and select **Start Debugging**.
 
 ### Using Terminal
 ```bash
@@ -145,16 +149,10 @@ flutter run
 
 ## Android Build Instructions
 
-To generate a signed APK or App Bundle:
-1. Ensure the `key.properties` file is configured in the `android/` folder.
-2. Run the build command:
-   ```bash
-   # For App Bundle (Google Play Store)
-   flutter build appbundle
-   
-   # For APK (Direct Installation)
-   flutter build apk --release
-   ```
+To generate a signed APK:
+```bash
+flutter build apk --release
+```
 
 ---
 
@@ -192,20 +190,21 @@ To generate a signed APK or App Bundle:
 
 > [!IMPORTANT]
 > **PRIVATE REPOSITORY NOTICE**
-> This project is **not** open-source. Unauthorized copying, redistribution, modification, or commercial usage of any part of this repository is strictly prohibited.
+> This project is **not** open-source. Unauthorized copying, redistribution, modification, or commercial usage is strictly prohibited.
 
 - **Developer Access:** Only authorized developers listed in the Contribution section are granted access to this repository.
-- **Data Privacy:** Health data is encrypted at rest and in transit where applicable via Firebase security rules.
+- **Data Privacy:** Health data is encrypted at rest and processed locally for ML predictions.
 - **Local Development:** Authorized developers must use their own development environment keys and comply with internal security guidelines.
 
 ---
 
 ## Future Roadmap
 
+- [x] **AI Insights:** Enhanced cycle prediction using machine learning patterns.
+- [x] **Diet Recommendations:** Personalized phase-specific nutrition advice.
 - [ ] **Deployment:** Google Play Store and Apple App Store release.
 - [ ] **iOS Support:** Fine-tuning UI/UX for iOS standards.
-- [ ] **Notifications:** Push notifications for cycle reminders and shop offers.
-- [ ] **AI Insights:** Enhanced cycle prediction using machine learning patterns.
+- [ ] **Notifications:** Push notifications for cycle reminders.
 
 ---
 
@@ -217,6 +216,6 @@ Usage of this software is governed by a private license. All rights reserved. No
 
 ## Version Information
 
-**Current Version:** 1.0.0+1  
-**Last Updated:** February 2026  
-**Status:** Alpha Release (Android Focus)
+**Current Version:** 1.2.0  
+**Last Updated:** March 2026  
+**Status:** Alpha Release (AI/ML Integrated)

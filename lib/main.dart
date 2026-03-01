@@ -19,6 +19,9 @@ import 'admin/add_product.dart';
 import 'admin/view_products.dart';
 import 'admin/manage_users.dart';
 
+// ML Demo
+import 'ml_system_demo.dart';
+
 // Providers
 import 'services/cart_provider.dart';
 import 'services/cycle_provider.dart';
@@ -89,6 +92,7 @@ class LioraApp extends StatelessWidget {
         '/addProduct': (_) => const AddProductScreen(),
         '/viewProducts': (_) => const ViewProductsScreen(),
         '/manageUsers': (_) => const ManageUsersScreen(),
+        '/ml-demo': (_) => const MLSystemDemoApp(),
       },
     );
   }

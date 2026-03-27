@@ -1,310 +1,296 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../home/cycle_algorithm.dart';
-import '../core/cycle_session.dart';
 
-class TrackerScreen extends StatefulWidget {
-  const TrackerScreen({super.key});
+import '../core/cycle_session.dart';
+import '../core/cycle_algorithm.dart';
+import '../widgets/cycle_history_sheet.dart';
+
+class CalendarScreen extends StatefulWidget {
+  const CalendarScreen({super.key});
 
   @override
-  State<TrackerScreen> createState() => _TrackerScreenState();
+  State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _TrackerScreenState extends State<TrackerScreen> {
-  bool isMonth = true;
-
+class _CalendarScreenState extends State<CalendarScreen>
+    with TickerProviderStateMixin {
   DateTime focusedDay = DateTime.now();
   DateTime selectedDay = DateTime.now();
 
-  late CycleAlgorithm algo;
-
-  final List<String> months = const [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    // ✅ SAME ENGINE AS HOME
-    algo = CycleSession.algorithm;
-
-    selectedDay = DateTime.now();
-    focusedDay = DateTime.now();
-  }
+  CycleAlgorithm get algo => CycleSession.algorithm;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-
+      backgroundColor: const Color(0xFFFDF6F9),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
-          },
-        ),
         centerTitle: true,
-        title: _monthYearToggle(),
+        title: const Text(
+          "Cycle Calendar",
+          style: TextStyle(
+            color: Color(0xFFE67598),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history,
+                color: Color(0xFFE67598)),
+            onPressed: _showHistorySheet,
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_calendar_outlined,
+                color: Color(0xFFE67598)),
+            onPressed: _editPeriodDate,
+          ),
+        ],
       ),
-
       body: Column(
         children: [
-          isMonth ? _monthCalendar() : _yearCalendar(),
-          const SizedBox(height: 8),
-          _editPeriodButton(),
-          const SizedBox(height: 8),
-          _bottomCard(),
+          _calendarCard(),
+          const SizedBox(height: 20),
+          _selectedDayInsight(),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  // 🔄 Month / Year toggle
-  Widget _monthYearToggle() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _toggleItem("Month", isMonth, () {
-            setState(() => isMonth = true);
-          }),
-          _toggleItem("Year", !isMonth, () {
-            setState(() => isMonth = false);
-          }),
-        ],
-      ),
-    );
-  }
+  // ================= CALENDAR =================
 
-  Widget _toggleItem(String text, bool active, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: active ? Colors.black : Colors.grey,
+  Widget _calendarCard() {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: TableCalendar(
+          focusedDay: focusedDay,
+          firstDay: DateTime.utc(2020),
+          lastDay: DateTime.utc(2035),
+          selectedDayPredicate: (d) => isSameDay(d, selectedDay),
+          onDaySelected: (s, f) {
+            setState(() {
+              selectedDay = s;
+              focusedDay = f;
+            });
+          },
+          headerStyle: const HeaderStyle(
+            titleCentered: true,
+            formatButtonVisible: false,
+          ),
+          calendarBuilders: CalendarBuilders(
+            defaultBuilder: (_, d, __) =>
+                _dayBox(d, algo.getType(d)),
+            todayBuilder: (_, d, __) =>
+                _dayBox(d, algo.getType(d), today: true),
+            selectedBuilder: (_, d, __) =>
+                _dayBox(d, algo.getType(d), selected: true),
           ),
         ),
       ),
     );
   }
 
-  // 📅 Month Calendar
-  Widget _monthCalendar() {
-    return TableCalendar(
-      focusedDay: focusedDay,
-      firstDay: DateTime.utc(2020),
-      lastDay: DateTime.utc(2030),
-      selectedDayPredicate: (d) => isSameDay(d, selectedDay),
-      onDaySelected: (s, f) {
-        setState(() {
-          selectedDay = s;
-          focusedDay = f;
-        });
-      },
-      calendarBuilders: CalendarBuilders(
-        defaultBuilder: (_, day, __) => _dayCell(day),
-        todayBuilder: (_, day, __) => _todayCell(day),
-        selectedBuilder: (_, day, __) => _todayCell(day),
+  Widget _dayBox(DateTime day, DayType type,
+      {bool selected = false, bool today = false}) {
+    Color color = Colors.transparent;
+
+    if (type == DayType.period) {
+      color = const Color(0xFFFFE0E6);
+    } else if (type == DayType.fertile) {
+      color = const Color(0xFFDFF6DD);
+    } else if (type == DayType.ovulation) {
+      color = const Color(0xFFE8E0F8);
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      margin: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: selected
+            ? Border.all(
+                color: Colors.pinkAccent, width: 2)
+            : today
+                ? Border.all(
+                    color: Colors.deepOrangeAccent,
+                    width: 2)
+                : null,
       ),
-      headerStyle: const HeaderStyle(
-        titleCentered: true,
-        formatButtonVisible: false,
+      alignment: Alignment.center,
+      child: Text(
+        "${day.day}",
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  // 📆 Year View
-  Widget _yearCalendar() {
-    return Expanded(
-      child: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: 12,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 1.2,
+  // ================= BIG INSIGHT CARD =================
+
+  Widget _selectedDayInsight() {
+    final type = algo.getType(selectedDay);
+
+    String title;
+    String desc;
+    Color g1;
+    Color g2;
+
+    switch (type) {
+      case DayType.period:
+        title = "Period Phase";
+        desc =
+            "Your menstrual phase. Take rest and stay hydrated.";
+        g1 = const Color(0xFFFF9AA2);
+        g2 = const Color(0xFFFFD1DC);
+        break;
+
+      case DayType.fertile:
+        title = "Fertile Window";
+        desc =
+            "These are your higher fertility days.";
+        g1 = const Color(0xFF81C784);
+        g2 = const Color(0xFFC8E6C9);
+        break;
+
+      case DayType.ovulation:
+        title = "Ovulation Day";
+        desc =
+            "Peak fertility day of your cycle.";
+        g1 = const Color(0xFFB39DDB);
+        g2 = const Color(0xFFE1BEE7);
+        break;
+
+      default:
+        title = "Normal Phase";
+        desc =
+            "Hormonal balance phase.";
+        g1 = const Color(0xFFF8BBD0);
+        g2 = const Color(0xFFE1BEE7);
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [g1, g2],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        itemBuilder: (_, index) {
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                focusedDay = DateTime(focusedDay.year, index + 1);
-                isMonth = true;
-              });
-            },
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text(
-                  months[index],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: g1.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            desc,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Selected Date: ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}",
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= HISTORY SHEET =================
+
+  void _showHistorySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return Container(
+          height:
+              MediaQuery.of(context).size.height * 0.65,
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(30)),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30)),
+            child: BackdropFilter(
+              filter:
+                  ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                color:
+                    Colors.white.withOpacity(0.9),
+                child: CycleHistorySheet(
+                  history: CycleSession.history,
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  // 🎨 Day Cell
-  Widget _dayCell(DateTime day) {
-    final DayType type = algo.getType(day);
-
-    Color? borderColor;
-    Color textColor = Colors.black;
-
-    if (type == DayType.period) {
-      borderColor = Colors.pink;
-      textColor = Colors.pink;
-    } else if (type == DayType.fertile) {
-      borderColor = Colors.teal;
-      textColor = Colors.teal;
-    } else if (type == DayType.ovulation) {
-      borderColor = Colors.purple;
-      textColor = Colors.purple;
-    }
-
-    return Center(
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: borderColor != null
-              ? Border.all(color: borderColor, width: 2)
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            "${day.day}",
-            style: TextStyle(color: textColor),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _todayCell(DateTime day) {
-    return Center(
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: const BoxDecoration(
-          color: Color(0xFFE0E0E0),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            "${day.day}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
-  }
+  // ================= EDIT PERIOD =================
 
-  // ✏️ EDIT PERIOD BUTTON (WORKING)
-  Widget _editPeriodButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 222, 120, 154),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      onPressed: _editLastPeriodDate,
-      child: const Text("Edit period dates"),
-    );
-  }
-
-  // 🔥 EDIT LAST PERIOD DATE LOGIC
-  Future<void> _editLastPeriodDate() async {
-    final pickedDate = await showDatePicker(
+  Future<void> _editPeriodDate() async {
+    final picked = await showDatePicker(
       context: context,
-      initialDate: algo.lastPeriod,
-      firstDate: DateTime(2020),
+      firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      initialDate: DateTime.now(),
     );
 
-    if (pickedDate == null) return;
+    if (picked != null) {
+      await CycleSession.addCycleRecord(picked);
 
-    setState(() {
-      // 🔄 Rebuild cycle engine safely
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
+      setState(() {
+        selectedDay = picked;
+        focusedDay = picked;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content:
+              Text("Cycle updated successfully"),
         ),
-        cycleLength: algo.cycleLength,
-        periodLength: algo.periodLength,
       );
-
-      algo = CycleSession.algorithm;
-      selectedDay = pickedDate;
-      focusedDay = pickedDate;
-    });
-  }
-
-  // 📊 Bottom Info Card (Cycle Day)
-  Widget _bottomCard() {
-    final int diff =
-        selectedDay.difference(algo.lastPeriod).inDays;
-
-    final int safeDiff =
-        ((diff % algo.cycleLength) + algo.cycleLength) %
-            algo.cycleLength;
-
-    final int cycleDay = safeDiff + 1;
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            "${months[selectedDay.month - 1].substring(0, 3)} ${selectedDay.day} · Cycle day $cycleDay",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const CircleAvatar(
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.close, color: Colors.white),
-          )
-        ],
-      ),
-    );
+    }
   }
 }

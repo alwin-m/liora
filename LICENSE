@@ -1,125 +1,40 @@
-# LIORA PROPRIETARY SOFTWARE LICENSE
+# 📜 LICENSE - Liora & Kitten Edition
 
-Copyright © 2026 Liora Project
-All rights reserved.
-
----
-
-## 1. Ownership
-
-This software application, including but not limited to its source code, object code, architecture, algorithms, databases, workflows, user interface designs, documentation, concepts, branding, naming, and underlying ideas (collectively, the "Software"), is the exclusive intellectual property of the **Liora Project** and its authorized contributors.
-
-All rights, title, and interest in and to the Software are owned solely by the Liora Project and the individuals officially listed as contributors to this repository.
+Copyright © 2026 **Liora Team**
+Project Lead: **alwin-m** ([alwinmadhu7@gmail.com](mailto:alwinmadhu7@gmail.com))
 
 ---
 
-## 2. Grant of Limited Permission
+## 🚫 COMMERCIAL USE DENIAL & LEGAL TERMS
 
-Subject to the terms of this License, permission is granted **only** to:
+This software is provided for **RESEARCH, STUDY, AND LEARNING PURPOSES ONLY**.
 
-* View the source code
-* Study the implementation for educational and academic purposes
-* Gain inspiration from the concepts and architecture
-
-This permission is strictly **non-commercial**, **non-transferable**, **non-sublicensable**, and **revocable**.
-
----
-
-## 3. Restrictions
-
-Except as expressly permitted above, **you may not**:
-
-* Copy, reproduce, or redistribute any part of the Software
-* Modify, adapt, translate, or create derivative works
-* Use the Software or any portion of its code in commercial, academic, or production systems
-* Integrate the Software into other projects, whether open-source or proprietary
-* Sell, license, sublicense, lease, or monetize the Software
-* Deploy the Software or its derivatives in any public or private environment
-
-Any use beyond viewing and studying the code requires **explicit prior written permission** from the Liora Project owners.
+1.  **NO COMMERCIAL USE:** Commercial use of this application, its design, structure, algorithms, or any single line of its code is **STRICTLY PROHIBITED AND HIGHLY ILLEGAL**. No person or entity may use this software (or any part thereof) for profit, commercial exploitation, or any business activity without express, written, and notarized permission from the project leader (**alwin-m**).
+2.  **CODE REUSE RESTRICTION:** Not even one single line of the code used in this project may be copied, repurposed, or integrated into a commercial product. The original intellectual property, including but not limited to, the UI/UX design, the cycle-tracking algorithms, and the application architecture, is fully protected.
+3.  **ALLOWED USES:**
+    *   **Study & Planning:** Individuals are permitted to use this code for studying Flutter-based application development, Netlify integration, and cycle-tracking algorithms.
+    *   **Research:** Researchers are encouraged to use this project as a case study for menstrual health technology and privacy-first local data storage.
+    *   **Personal Use:** Users are permitted to run the application locally on their own devices for their personal reproductive health tracking.
+    *   **Community Contributions:** Contributions to the project via GitHub (forking, pull requests, issue reporting) are welcomed for the purpose of improving the project's research value.
+4.  **ENFORCEMENT:** Any violation of these terms will be met with legal action. The team reserves the right to pursue criminal and civil remedies in a court of law against any party engaging in unauthorized commercial use. If this project is taken to court, these terms serve as the definitive legal framework for its protection.
+5.  **INTELLECTUAL PROPERTY:** All rights, titles, and interests in the application’s design, algorithm, and structure are owned by the original development team led by **alwin-m**. While some portions of the code may have been inspired by or adapted from other open-source projects, the unique combination, logic, and implementation presented here constitute a proprietary work.
 
 ---
 
-## 4. Contributor Rights
+## 🎯 GOALS OF THE PROJECT
 
-Only the officially recognized contributors to this repository are granted the right to:
+The primary goal of the Liora project is to advance understanding in:
+- **Netlify-based application building.**
+- **Flutter-based mobile development.**
+- **Privacy-first, local-only data storage solutions.**
+- **Accurate and secure menstrual cycle tracking algorithms.**
 
-* Access the full development capabilities of the Software
-* Modify, refactor, or extend the codebase
-* Use the Software for commercial, academic, research, or production purposes
-* Distribute or license the Software under terms approved by the contributors
-
-No rights are granted to third parties unless explicitly authorized in writing.
-
----
-
-## 5. Protection of Ideology and Concepts
-
-The core ideas, methodologies, workflows, and conceptual framework behind the Liora Project are protected intellectual property.
-
-Unauthorized replication of the Software’s ideology, functional behavior, or system design for commercial or competitive purposes is strictly prohibited.
+We provide the source code to the community to foster learning and academic research, not for commercial exploitation.
 
 ---
 
-## 6. Medical Disclaimer
+**By using, downloading, or forking this software, you agree to be bound by the terms of this license.**
 
-**IMPORTANT NOTICE – NOT A MEDICAL DEVICE**
-
-The Software is **not** a medically approved, certified, or regulated healthcare tool. It is not licensed by any medical authority, healthcare organization, or regulatory body.
-
-The Software must **not** be used for:
-
-* Medical diagnosis
-* Clinical decision-making
-* Treatment planning
-* Emergency or critical healthcare situations
-
-Reliance on this Software for real-world medical decisions may result in harm. Users are strongly advised to consult qualified medical professionals for all healthcare-related concerns.
-
----
-
-## 7. No Warranty
-
-The Software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, accuracy, reliability, or non-infringement.
-
-The Liora Project and its contributors do not guarantee that the Software will be error-free, secure, uninterrupted, or suitable for any specific use.
-
----
-
-## 8. Limitation of Liability
-
-In no event shall the Liora Project, its contributors, or affiliates be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, misuse, or inability to use the Software, even if advised of the possibility of such damages.
-
----
-
-## 9. Enforcement and Termination
-
-Any violation of this License will result in the immediate termination of all permissions granted herein.
-
-The Liora Project reserves the right to pursue legal action and seek damages for unauthorized use, reproduction, modification, or commercialization of the Software.
-
----
-
-## 10. Governing Law
-
-This License shall be governed by and construed in accordance with the applicable laws of the jurisdiction determined by the Liora Project owners.
-
----
-
-## 11. Contact Information
-
-For licensing requests, permissions, or legal inquiries:
-
-📧 **Team Lead:** [alwinmadhu7@gmail.com](mailto:alwinmadhu7@gmail.com)
-
----
-
-## 👥 Contributors
-
-* **Alwin Madhu** – [@alwin-m](https://github.com/alwin-m)
-* **Abhishek** – [@abhishek-2006-7](https://github.com/abhishek-2006-7)
-* **Nejin Bejoy** – [@nejinbejoy](https://github.com/nejinbejoy)
-* **Majumnair** – [@Majumnair](https://github.com/Majumnair)
-* **Siraj** – [@sirajudheen7official-boop](https://github.com/sirajudheen7official-boop)
-
-
+Last Updated: March 2026
+🌸 Liora Project Team
+🐱 Kitten Edition Division

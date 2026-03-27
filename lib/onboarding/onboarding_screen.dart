@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../home/home_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/advanced_cycle_profile.dart';
 import '../core/cycle_session.dart';
-import '../home/cycle_algorithm.dart';
+import '../core/app_theme.dart';
 
 class OnboardingQuestionsScreen extends StatefulWidget {
   const OnboardingQuestionsScreen({super.key});
@@ -16,45 +17,36 @@ class _OnboardingQuestionsScreenState
   final PageController _controller = PageController();
   int step = 0;
 
-  DateTime? dateOfBirth;
+  // ================= BASIC =================
   DateTime? lastPeriodDate;
+  int age = 25;
   int cycleLength = 28;
   int periodLength = 5;
 
-  String flowLevel = "Medium";
-  String cycleRegularity = "Regular";
-  String pmsLevel = "Mild";
+  // ================= LIFESTYLE =================
+  int stressLevel = 0;
+  int sleepHours = 7;
+  int waterIntake = 2;
+  int exerciseFrequency = 2;
 
-  int get age {
-    if (dateOfBirth == null) return 0;
-    final today = DateTime.now();
-    int years = today.year - dateOfBirth!.year;
-    if (today.month < dateOfBirth!.month ||
-        (today.month == dateOfBirth!.month &&
-            today.day < dateOfBirth!.day)) {
-      years--;
-    }
-    return years;
-  }
+  // ================= HEALTH =================
+  bool isRegular = true;
+  bool hasPCOS = false;
+  bool hasThyroid = false;
+  bool heavyFlow = false;
+  bool severePain = false;
+
+  // =======================================================
 
   void _next() {
-    if (step < 7) {
+    if (step < 6) {
       setState(() => step++);
       _controller.nextPage(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
       );
     } else {
-      CycleSession.algorithm = CycleAlgorithm(
-        lastPeriod: lastPeriodDate ?? DateTime.now(), // ✅ crash safe
-        cycleLength: cycleLength,
-        periodLength: periodLength,
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      _finishOnboarding();
     }
   }
 
@@ -62,46 +54,98 @@ class _OnboardingQuestionsScreenState
     if (step > 0) {
       setState(() => step--);
       _controller.previousPage(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
       );
     }
   }
 
+  Future<void> _finishOnboarding() async {
+    if (lastPeriodDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select last period date")),
+      );
+      return;
+    }
+
+    int sleepQuality = sleepHours < 6 ? 0 : (sleepHours >= 7 ? 2 : 1);
+    int exerciseLevel =
+        exerciseFrequency < 2 ? 0 : (exerciseFrequency >= 3 ? 2 : 1);
+    int bmiCategory = 1;
+    int flowIntensity = heavyFlow ? 2 : 1;
+    int painLevel = severePain ? 2 : (stressLevel >= 2 ? 1 : 0);
+    int pmsSeverity = waterIntake < 2 ? 1 : 0;
+
+    final profile = AdvancedCycleProfile(
+      lastPeriodDate: lastPeriodDate!,
+      averageCycleLength: cycleLength,
+      averagePeriodLength: periodLength,
+      age: age,
+      isRegularCycle: isRegular,
+      stressLevel: stressLevel,
+      painLevel: painLevel,
+      pmsSeverity: pmsSeverity,
+      flowIntensity: flowIntensity,
+      ovulationSymptoms: false,
+      sleepQuality: sleepQuality,
+      exerciseLevel: exerciseLevel,
+      bmiCategory: bmiCategory,
+      hasPCOS: hasPCOS,
+      hasThyroid: hasThyroid,
+      onHormonalMedication: false,
+      recentlyPregnant: false,
+      breastfeeding: false,
+    );
+
+    await CycleSession.saveToLocalStorage(profile);
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
+  // =======================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black54,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(24),
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LinearProgressIndicator(
-                value: (step + 1) / 8,
-                color: const Color(0xFFE67598),
-                backgroundColor: Colors.grey.shade200,
-              ),
-              const SizedBox(height: 24),
+              _progressBar(),
+              const SizedBox(height: 30),
               SizedBox(
-                height: 360,
+                height: 420,
                 child: PageView(
                   controller: _controller,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _dobStep(),
-                    _lastPeriodStep(),
-                    _cycleLengthStep(),
-                    _periodLengthStep(),
-                    _flowStep(),
-                    _regularityStep(),
-                    _pmsStep(),
+                    _dateStep(),
+                    _numberSlider("Your Age?", age, 10, 50,
+                        (v) => age = v),
+                    _numberSlider("Cycle Length (days)?",
+                        cycleLength, 21, 40,
+                        (v) => cycleLength = v),
+                    _numberSlider("Period Length (days)?",
+                        periodLength, 3, 10,
+                        (v) => periodLength = v),
+                    _lifestyleStep(),
+                    _healthStep(),
                     _finishStep(),
                   ],
                 ),
@@ -113,207 +157,211 @@ class _OnboardingQuestionsScreenState
     );
   }
 
-  // STEP 0 — DOB
-  Widget _dobStep() {
-    return Column(
-      children: [
-        const Text(
-          "Let's know about you in 13 seconds 💗",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          "We'll ask just a few simple questions to personalize your cycle calendar.",
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
+  // =======================================================
+  // UI COMPONENTS
+  // =======================================================
 
-        _datePickerBox(
-          label: "Date of Birth",
-          date: dateOfBirth,
-          onPick: (d) => setState(() => dateOfBirth = d),
-        ),
-
-        const SizedBox(height: 16),
-
-        if (dateOfBirth != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFCE4EC),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text("So, you're $age years old 🌸"),
-          ),
-
-        const Spacer(),
-        _primaryButton("Let's go", enabled: dateOfBirth != null),
-        TextButton(onPressed: _next, child: const Text("Skip for now")),
-      ],
+  Widget _progressBar() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: LinearProgressIndicator(
+        value: (step + 1) / 7,
+        minHeight: 8,
+        backgroundColor: Colors.grey.shade200,
+        valueColor: AlwaysStoppedAnimation(LioraColors.primary),
+      ),
     );
   }
 
-  // STEP 1 — LAST PERIOD
-  Widget _lastPeriodStep() => _simpleStep(
-        "When did your last menstrual cycle start?",
-        _datePickerBox(
-          label: "Last Menstrual Cycle Start Date",
-          date: lastPeriodDate,
-          onPick: (d) => setState(() => lastPeriodDate = d),
-        ),
-      );
-
-  Widget _cycleLengthStep() => _simpleStep(
-        "About how many days are there between your cycles?",
-        _pillWrap([21, 24, 27, 28, 30, 32], cycleLength,
-            (v) => setState(() => cycleLength = v)),
-      );
-
-  Widget _periodLengthStep() => _simpleStep(
-        "How long do your periods usually last?",
-        _pillWrap([2, 3, 4, 5, 6, 7, 8, 9, 10], periodLength,
-            (v) => setState(() => periodLength = v)),
-      );
-
-  Widget _flowStep() => _simpleStep(
-        "How heavy is your flow usually?",
-        _stringWrap(["Light", "Medium", "Heavy"], flowLevel,
-            (v) => setState(() => flowLevel = v)),
-      );
-
-  Widget _regularityStep() => _simpleStep(
-        "Are your cycles usually regular?",
-        _stringWrap(["Very regular", "Mostly regular", "Irregular"],
-            cycleRegularity, (v) => setState(() => cycleRegularity = v)),
-      );
-
-  Widget _pmsStep() => _simpleStep(
-        "Do you usually get PMS symptoms?",
-        _stringWrap(["None", "Mild", "Moderate", "Severe"], pmsLevel,
-            (v) => setState(() => pmsLevel = v)),
-      );
-
-  Widget _finishStep() => Column(
-        children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: Color(0xFFF4C7D8),
-            child: Icon(Icons.check, color: Color(0xFFE67598), size: 32),
-          ),
-          const SizedBox(height: 16),
-          const Text("You're all set ✨",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          _primaryButton("Explore Your Calendar"),
-        ],
-      );
-
-  // UI HELPERS
-
-  Widget _simpleStep(String title, Widget body) {
+  Widget _stepLayout(String title, Widget body) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 24),
+        Text(
+          title,
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : LioraColors.catBlack,
+          ),
+        ),
+        const SizedBox(height: 28),
         body,
         const Spacer(),
-        _primaryButton("Let's go"),
-        _secondaryButton("Go back", _back),
+        _primaryButton(step == 6 ? "Finish" : "Next"),
+        TextButton(
+          onPressed: _back,
+          style: TextButton.styleFrom(foregroundColor: LioraColors.textMuted),
+          child: const Text("Back"),
+        ),
       ],
     );
   }
 
-  Widget _datePickerBox({
-    required String label,
-    required DateTime? date,
-    required ValueChanged<DateTime> onPick,
-  }) {
-    return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          firstDate: DateTime(1950),
-          lastDate: DateTime.now(),
-          initialDate: DateTime.now(),
-        );
-        if (picked != null) onPick(picked);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(date == null
-                ? label
-                : "${date.day}/${date.month}/${date.year}"),
-            const Icon(Icons.calendar_today, color: Color(0xFFE67598)),
-          ],
+  Widget _numberSlider(
+    String title,
+    int value,
+    int min,
+    int max,
+    Function(int) onChanged,
+  ) {
+    return _stepLayout(
+      title,
+      Column(
+        children: [
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 6,
+              activeTrackColor: LioraColors.primary,
+              inactiveTrackColor: Colors.grey.shade200,
+              thumbColor: LioraColors.primary,
+              overlayColor: LioraColors.primary.withOpacity(0.2),
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 10),
+            ),
+            child: Slider(
+              min: min.toDouble(),
+              max: max.toDouble(),
+              divisions: max - min,
+              value: value.toDouble(),
+              onChanged: (v) =>
+                  setState(() => onChanged(v.toInt())),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "$value",
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _dateStep() {
+    return _stepLayout(
+      "When did your last period start?",
+      GestureDetector(
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            firstDate: DateTime(2000),
+            lastDate: DateTime.now(),
+            initialDate: DateTime.now(),
+          );
+          if (picked != null) {
+            setState(() => lastPeriodDate = picked);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                lastPeriodDate == null
+                    ? "Select Date"
+                    : "${lastPeriodDate!.day}/${lastPeriodDate!.month}/${lastPeriodDate!.year}",
+                style: const TextStyle(fontSize: 16),
+              ),
+              const Icon(Icons.calendar_today, color: LioraColors.primary),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _pillWrap(
-      List<int> values, int selected, ValueChanged<int> onSelect) {
-    return Wrap(
-      spacing: 8,
-      children: values
-          .map((v) => _pill("$v", selected == v, () => onSelect(v)))
-          .toList(),
-    );
-  }
-
-  Widget _stringWrap(
-      List<String> values, String selected, ValueChanged<String> onSelect) {
-    return Wrap(
-      spacing: 8,
-      children: values
-          .map((v) => _pill(v, selected == v, () => onSelect(v)))
-          .toList(),
-    );
-  }
-
-  Widget _pill(String text, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE67598) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                color: selected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w600)),
+  Widget _lifestyleStep() {
+    return _stepLayout(
+      "Lifestyle",
+      Column(
+        children: [
+          _switchTile("High Stress?", stressLevel == 2,
+              (v) => setState(() => stressLevel = v ? 2 : 0)),
+          _switchTile("Sleep < 6 hours?", sleepHours < 6,
+              (v) => setState(() => sleepHours = v ? 5 : 7)),
+          _switchTile("Low Water Intake?", waterIntake < 2,
+              (v) => setState(() => waterIntake = v ? 1 : 3)),
+          _switchTile("Rare Exercise?", exerciseFrequency < 2,
+              (v) => setState(() => exerciseFrequency = v ? 1 : 3)),
+        ],
       ),
     );
   }
 
-  Widget _primaryButton(String text, {bool enabled = true}) {
+  Widget _healthStep() {
+    return _stepLayout(
+      "Health Conditions",
+      Column(
+        children: [
+          _switchTile("Irregular Cycles?", !isRegular,
+              (v) => setState(() => isRegular = !v)),
+          _switchTile("PCOS?", hasPCOS,
+              (v) => setState(() => hasPCOS = v)),
+          _switchTile("Thyroid?", hasThyroid,
+              (v) => setState(() => hasThyroid = v)),
+          _switchTile("Heavy Flow?", heavyFlow,
+              (v) => setState(() => heavyFlow = v)),
+          _switchTile("Severe Pain?", severePain,
+              (v) => setState(() => severePain = v)),
+        ],
+      ),
+    );
+  }
+
+  Widget _finishStep() {
+    return Column(
+      children: [
+        const Icon(Icons.check_circle_rounded,
+            size: 64, color: LioraColors.primary),
+        const SizedBox(height: 16),
+        const Text(
+          "You're all set ✨",
+          style:
+              TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 30),
+        _primaryButton("Start Tracking"),
+      ],
+    );
+  }
+
+  Widget _switchTile(
+      String title, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      title: Text(title),
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor: LioraColors.primary,
+    );
+  }
+
+  Widget _primaryButton(String text) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 50,
       child: ElevatedButton(
-        onPressed: enabled ? _next : null,
+        onPressed: _next,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE67598),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: LioraColors.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
-        child: Text(text),
+        child: Text(text,
+            style: const TextStyle(fontSize: 16)),
       ),
     );
-  }
-
-  Widget _secondaryButton(String text, VoidCallback onTap) {
-    return TextButton(onPressed: onTap, child: Text(text));
   }
 }

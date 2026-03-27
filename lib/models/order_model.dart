@@ -38,13 +38,15 @@ class OrderModel {
       productId: data['productId'] ?? '',
       productName: data['productName'] ?? 'Product',
       imageUrl: data['imageUrl'],
-      price: (data['price'] ?? 0) as int,
-      quantity: (data['quantity'] ?? 1) as int,
-      total: (data['total'] ?? 0) as int,
+      price: (data['price'] as num? ?? 0).toInt(),
+      quantity: (data['quantity'] as num? ?? 1).toInt(),
+      total: (data['total'] as num? ?? 0).toInt(),
       fullName: data['fullName'] ?? '',
       address: data['address'] ?? '',
       phone: data['phone'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
       status: data['status'] ?? 'placed',
       cancelledAt: data['cancelledAt'] != null
           ? (data['cancelledAt'] as Timestamp).toDate()
@@ -66,8 +68,9 @@ class OrderModel {
       'phone': phone,
       'createdAt': Timestamp.fromDate(createdAt),
       'status': status,
-      'cancelledAt':
-          cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancelledAt': cancelledAt != null
+          ? Timestamp.fromDate(cancelledAt!)
+          : null,
     };
   }
 }

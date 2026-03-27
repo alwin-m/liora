@@ -5,13 +5,11 @@ class ProductService {
   final _db = FirebaseFirestore.instance;
 
   Stream<List<Product>> getProducts() {
-    return _db.collection('products').snapshots().map(
-      (snapshot) {
-        return snapshot.docs
-            .map((doc) => Product.fromMap(doc.id, doc.data()))
-            .toList();
-      },
-    );
+    return _db.collection('products').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Product.fromMap(doc.id, doc.data()))
+          .toList();
+    });
   }
 
   /// Reduce stock when user buys
@@ -21,14 +19,12 @@ class ProductService {
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(ref);
 
-      final currentStock = snapshot['stock'];
+      final currentStock = (snapshot['stock'] as num? ?? 0).toInt();
       if (currentStock <= 0) {
         throw Exception('Out of stock');
       }
 
-      transaction.update(ref, {
-        'stock': currentStock - 1,
-      });
+      transaction.update(ref, {'stock': currentStock - 1});
     });
   }
 
@@ -38,10 +34,9 @@ class ProductService {
 
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(ref);
+      final currentStock = (snapshot['stock'] as num? ?? 0).toInt();
       // Restore by quantity (not hardcoded 1)
-      transaction.update(ref, {
-        'stock': snapshot['stock'] + quantity,
-      });
+      transaction.update(ref, {'stock': currentStock + quantity});
     });
   }
 }

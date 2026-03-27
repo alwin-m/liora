@@ -1,0 +1,61 @@
+name: "Release"
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "📥 Checkout Code"
+        uses: actions/checkout@v4
+      
+      - name: "🐦 Setup Flutter"
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.8.0"
+      
+      - name: "☕ Setup Java"
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "11"
+      
+      - name: "📦 Get Dependencies"
+        run: flutter pub get
+      
+      - name: "🧪 Run Tests"
+        run: flutter test
+      
+      - name: "🏗️ Build APK Release"
+        run: flutter build apk --release --no-tree-shake-icons
+      
+      - name: "📦 Build App Bundle"
+        run: flutter build appbundle --release
+      
+      - name: "📤 Create Release"
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: "Release ${{ github.ref }}"
+          body: |
+            Release notes coming soon...
+          draft: true
+          prerelease: false
+      
+      - name: "📤 Upload APK"
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-apk
+          path: build/app/outputs/apk/release/app-release.apk
+      
+      - name: "📤 Upload AAB"
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-bundle
+          path: build/app/outputs/bundle/release/app-release.aab

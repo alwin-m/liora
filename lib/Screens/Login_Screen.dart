@@ -1,240 +1,9 @@
-/*import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:lioraa/onboarding/onboarding_screen.dart';
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> login() async {
-    try {
-      setState(() => isLoading = true);
-
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      // 🔥 CRITICAL FIX (UNCHANGED)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const OnboardingQuestionsScreen(),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Forgot your password?',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
-        ),
-      ),
-    );
-  }
-}
-*/
-/*
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/notification_service.dart';
+import '../core/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -248,12 +17,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool _hidePassword = true;
 
   Future<void> login() async {
     try {
       setState(() => isLoading = true);
 
-      // 1️⃣ Firebase Authentication
       UserCredential credential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
@@ -262,15 +31,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final uid = credential.user!.uid;
 
-      // 2️⃣ Fetch user document from Firestore
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
 
+      NotificationService.showTestNotification();
+
       final role = userDoc['role'];
 
-      // 3️⃣ Role-based navigation
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
       } else {
@@ -294,281 +63,33 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Forgot your password?',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
-        ),
-      ),
-    );
-  }
-}
-*/
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  bool isLoading = false;
-
-  Future<void> login() async {
-    try {
-      setState(() => isLoading = true);
-
-      // 1️⃣ Firebase Authentication
-      UserCredential credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      final uid = credential.user!.uid;
-
-      // 2️⃣ Fetch user document from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
-
-      final role = userDoc['role'];
-
-      // 3️⃣ Role-based navigation
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else {
-        final profileCompleted =
-            userDoc.data()!.containsKey('profileCompleted')
-                ? userDoc['profileCompleted']
-                : false;
-
-        if (profileCompleted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          Navigator.pushReplacementNamed(context, '/onboarding');
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  // 🔐 PASSWORD RESET DIALOG
   void _showResetPasswordDialog() {
     final resetEmailController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Reset Password',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w600,
+            color: LioraColors.primary,
+          ),
         ),
-        title: const Text('Reset Password'),
         content: TextField(
           controller: resetEmailController,
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
             hintText: 'Enter your email',
+            prefixIcon: Icon(Icons.email_outlined),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('Cancel',
+                style: TextStyle(color: LioraColors.textMuted)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -576,14 +97,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 await FirebaseAuth.instance.sendPasswordResetEmail(
                   email: resetEmailController.text.trim(),
                 );
-
                 Navigator.pop(context);
-
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'Password reset email sent. Please check your inbox.',
-                    ),
+                    content: Text('Password reset email sent.'),
                   ),
                 );
               } catch (e) {
@@ -592,6 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
               }
             },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+            ),
             child: const Text('Send'),
           ),
         ],
@@ -601,156 +122,208 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 237, 164, 217),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-
-              Text(
-                'Liora',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Care for your rhythm',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Welcome back',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [LioraColors.bgDark, LioraColors.surfaceDark]
+                : [const Color(0xFFFFF0F3), LioraColors.bgLight],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                children: [
+                  // ── Logo ──────────────────────────────
+                  Hero(
+                    tag: 'liora_logo',
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: LioraColors.primary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: LioraColors.primary.withOpacity(0.4),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icon/app_icon1.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 6),
+                  const SizedBox(height: 20),
 
-                    Text(
-                      "We're glad to see you again",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
+                  Text(
+                    'Liora',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w700,
+                      color: LioraColors.primary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    'Care for your rhythm',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: LioraColors.textMuted,
+                    ),
+                  ),
+
+                  const SizedBox(height: 36),
+
+                  // ── Card ──────────────────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 28),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? LioraColors.surfaceDark
+                          : LioraColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: LioraColors.primary.withOpacity(
+                              isDark ? 0.1 : 0.08),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: LioraColors.primary.withOpacity(0.12),
+                        width: 1,
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    _inputField(
-                      controller: emailController,
-                      hint: 'Email',
-                      icon: Icons.email_outlined,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _inputField(
-                      controller: passwordController,
-                      hint: 'Password',
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE67598),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : LioraColors.catBlack,
                           ),
                         ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'Log in',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
 
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 4),
 
-                    // 🔥 WORKING FORGOT PASSWORD
-                    GestureDetector(
-                      onTap: _showResetPasswordDialog,
-                      child: Text(
-                        'Forgot your password?',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: const Color(0xFFE67598),
-                          decoration: TextDecoration.underline,
+                        Text(
+                          "We're glad to see you again 🐱",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: LioraColors.textMuted,
+                          ),
                         ),
+
+                        const SizedBox(height: 28),
+
+                        _inputField(
+                          controller: emailController,
+                          hint: 'Email',
+                          icon: Icons.email_outlined,
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _inputField(
+                          controller: passwordController,
+                          hint: 'Password',
+                          icon: Icons.lock_outline,
+                          obscure: _hidePassword,
+                          isPassword: true,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: _showResetPasswordDialog,
+                            child: Text(
+                              'Forgot password?',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: LioraColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Login button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : login,
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Log in'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Sign up link
+                  GestureDetector(
+                    onTap: () =>
+                        Navigator.pushReplacementNamed(context, '/signup'),
+                    child: RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: LioraColors.textMuted,
+                        ),
+                        children: [
+                          const TextSpan(text: "New to Liora? "),
+                          TextSpan(
+                            text: "Create an account",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: LioraColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/signup');
-                },
-                child: Text(
-                  "New to Liora? Create an account",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE67598),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -762,33 +335,23 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hint,
     required IconData icon,
     bool obscure = false,
+    bool isPassword = false,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
-        hintStyle: GoogleFonts.poppins(
-          fontSize: 13,
-          color: Colors.grey.shade500,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE67598)),
-        ),
+        prefixIcon: Icon(icon),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _hidePassword ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: () =>
+                    setState(() => _hidePassword = !_hidePassword),
+              )
+            : null,
       ),
     );
   }

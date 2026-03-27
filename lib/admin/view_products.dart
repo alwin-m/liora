@@ -1,258 +1,109 @@
-/*
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ViewProductsScreen extends StatelessWidget {
   const ViewProductsScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Products")),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('products').snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  static const _appBarGradient = LinearGradient(
+    colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-          final products = snapshot.data!.docs;
+  static const _bodyGradient = LinearGradient(
+    colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final p = products[index];
-              return Card(
-                child: ListTile(
-                  title: Text(p['name']),
-                  subtitle: Text("₹ ${p['price']}"),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      FirebaseFirestore.instance
-                          .collection('products')
-                          .doc(p.id)
-                          .delete();
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
+  Future<void> _deleteProduct(
+    BuildContext context,
+    String productId,
+    String name,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
-  }
-}
-*/
-/*import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ViewProductsScreen extends StatelessWidget {
-  const ViewProductsScreen({super.key});
+    if (confirm == true) {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .delete();
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('"$name" deleted successfully')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 🌈 Gradient AppBar
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)], // pastel pink-purple
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          decoration: const BoxDecoration(gradient: _appBarGradient),
         ),
-        title: const Text("Products"),
+        title: const Text('Products'),
       ),
-
-      // 🌈 Gradient background
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)], // soft pastel background
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: _bodyGradient),
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('products').snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            // ✅ Error state
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            // ✅ Loading state
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
             final products = snapshot.data!.docs;
 
+            // ✅ Empty state
             if (products.isEmpty) {
               return const Center(
-                child: Text(
-                  "No products available",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                ),
-              );
-            }
-
-            return GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // 2 cards per row
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final p = products[index];
-                final data = p.data() as Map<String, dynamic>;
-                final name = data['name'] ?? 'Unnamed';
-                final price = data['price'] ?? 0.0;
-                final desc = data['description'] ?? '';
-
-                return Hero(
-                  tag: p.id,
-                  child: Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 64,
+                      color: Colors.grey,
                     ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.95),
-                            Colors.blue.shade50.withOpacity(0.7),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 🛍 Product Icon
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  FirebaseFirestore.instance
-                                      .collection('products')
-                                      .doc(p.id)
-                                      .delete();
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: Colors.pinkAccent,
-                              child: const Icon(Icons.shopping_bag,
-                                  color: Colors.white, size: 28),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "₹ $price",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Expanded(
-                              child: Text(
-                                desc,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade700,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                    SizedBox(height: 12),
+                    Text(
+                      'No products available',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-}*/
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class ViewProductsScreen extends StatelessWidget {
-  const ViewProductsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // 🌈 Gradient AppBar
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text("Products"),
-      ),
-
-      // 🌈 Gradient background
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('products').snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final products = snapshot.data!.docs;
-
-            if (products.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No products available",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ],
                 ),
               );
             }
@@ -263,7 +114,7 @@ class ViewProductsScreen extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.8,
+                childAspectRatio: 0.68, // ✅ Fixed: was 0.8, content overflowed
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {
@@ -272,11 +123,18 @@ class ViewProductsScreen extends StatelessWidget {
 
                 final name = data['name'] ?? 'Unnamed';
                 final price = data['price'] ?? 0;
-                final desc = data['description'] ?? '';
-                final stock = data['stock'] ?? 0; // ✅ ADDED
+                // ✅ Support both 'description' and legacy 'details' field
+                final desc =
+                    data['description'] ??
+                    (data['details'] is List &&
+                            (data['details'] as List).isNotEmpty
+                        ? (data['details'] as List).first
+                        : '');
+                final stock = data['stock'] ?? 0;
+                final imageUrl = data['image'] ?? '';
 
                 return Hero(
-                  tag: p.id,
+                  tag: 'product_${p.id}', // ✅ prefixed for uniqueness
                   child: Card(
                     elevation: 8,
                     shape: RoundedRectangleBorder(
@@ -287,124 +145,153 @@ class ViewProductsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.95),
-                            Colors.blue.shade50.withOpacity(0.7),
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.blue.shade50.withValues(alpha: 0.7),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 🗑 Delete Button with Confirmation
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text("Delete Product"),
-                                      content: const Text(
-                                        "Are you sure you want to delete this product?",
+                            // ✅ Edit + Delete buttons row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.blueAccent,
+                                    size: 20,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EditProductScreen(
+                                          productId: p.id,
+                                          data: data,
+                                        ),
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: const Text("Cancel"),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                          ),
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text("Delete"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () =>
+                                      _deleteProduct(context, p.id, name),
+                                ),
+                              ],
+                            ),
 
-                                  if (confirm == true) {
-                                    await FirebaseFirestore.instance
-                                        .collection('products')
-                                        .doc(p.id)
-                                        .delete();
-                                  }
-                                },
-                              ),
+                            const SizedBox(height: 4),
+
+                            // ✅ Product image
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: imageUrl.isNotEmpty
+                                  ? Image.network(
+                                      imageUrl,
+                                      height: 75,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return const SizedBox(
+                                              height: 75,
+                                              child: Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 40,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                    )
+                                  : const SizedBox(
+                                      height: 75,
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: 40,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
                             ),
 
                             const SizedBox(height: 8),
-
-                            ClipRRect(
-  borderRadius: BorderRadius.circular(12),
-  child: data['image'] != null && data['image'] != ''
-      ? Image.network(
-          data['image'],
-          height: 80,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.broken_image, size: 60);
-          },
-        )
-      : const Icon(Icons.image_not_supported, size: 60),
-),
-
-
-                            const SizedBox(height: 12),
 
                             Text(
                               name,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 14,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
 
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
 
                             Text(
-                              "₹ $price",
+                              '₹ $price',
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 color: Colors.green,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
 
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
 
-                            // ✅ STOCK DISPLAY (VERY IMPORTANT)
-                            Text(
-                              "Stock: $stock",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                            // ✅ Stock badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
                                 color: stock > 0
-                                    ? Colors.blueGrey
-                                    : Colors.redAccent,
+                                    ? Colors.blueGrey.withValues(alpha: 0.1)
+                                    : Colors.redAccent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                stock > 0 ? 'Stock: $stock' : 'Out of Stock',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: stock > 0
+                                      ? Colors.blueGrey
+                                      : Colors.redAccent,
+                                ),
                               ),
                             ),
 
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
 
                             Expanded(
                               child: Text(
                                 desc,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: Colors.grey.shade700,
                                 ),
-                                maxLines: 3,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -417,6 +304,230 @@ class ViewProductsScreen extends StatelessWidget {
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// ✏️ Edit Product Screen
+// ─────────────────────────────────────────────
+class EditProductScreen extends StatefulWidget {
+  final String productId;
+  final Map<String, dynamic> data;
+
+  const EditProductScreen({
+    super.key,
+    required this.productId,
+    required this.data,
+  });
+
+  @override
+  State<EditProductScreen> createState() => _EditProductScreenState();
+}
+
+class _EditProductScreenState extends State<EditProductScreen> {
+  late final TextEditingController nameController;
+  late final TextEditingController priceController;
+  late final TextEditingController descController;
+  late final TextEditingController stockController;
+
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.data['name'] ?? '');
+    priceController = TextEditingController(
+      text: '${widget.data['price'] ?? ''}',
+    );
+    // ✅ Support both 'description' and legacy 'details'
+    final descValue =
+        widget.data['description'] ??
+        (widget.data['details'] is List &&
+                (widget.data['details'] as List).isNotEmpty
+            ? (widget.data['details'] as List).first
+            : '');
+    descController = TextEditingController(text: descValue);
+    stockController = TextEditingController(
+      text: '${widget.data['stock'] ?? ''}',
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    priceController.dispose();
+    descController.dispose();
+    stockController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveChanges() async {
+    final name = nameController.text.trim();
+    final price = int.tryParse(priceController.text.trim());
+    final stock = int.tryParse(stockController.text.trim());
+    final desc = descController.text.trim();
+
+    if (name.isEmpty || price == null || stock == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields with valid values'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .update({
+            'name': name,
+            'price': price,
+            'description': desc,
+            'stock': stock,
+          });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product updated successfully')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFfbc2eb), Color(0xFFa6c1ee)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text('Edit Product'),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildField(nameController, 'Product Name', Icons.label),
+              const SizedBox(height: 16),
+              _buildField(
+                priceController,
+                'Price (₹)',
+                Icons.currency_rupee,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              _buildField(
+                stockController,
+                'Stock Quantity',
+                Icons.inventory_2_outlined,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              _buildField(
+                descController,
+                'Description',
+                Icons.description,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    backgroundColor: Colors.pinkAccent,
+                    elevation: 6,
+                  ),
+                  onPressed: loading ? null : _saveChanges,
+                  child: loading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.85),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        enabled: !loading,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.pinkAccent),
+          labelText: label,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );

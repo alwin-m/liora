@@ -1,4 +1,4 @@
-![Liora Branding](assets/branding/banner.png)
+
 
 # Liora - Advanced Women's Health & Cycle Intelligence 🌸
 

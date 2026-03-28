@@ -22,9 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
-
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int index = 0;
 
   DateTime focusedDay = DateTime.now();
@@ -38,9 +36,10 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    _glowController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2))
-          ..repeat(reverse: true);
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -181,9 +180,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _calendarCard() {
     return Card(
       elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: TableCalendar(
@@ -199,8 +196,7 @@ class _HomeScreenState extends State<HomeScreen>
             _showDayPopup(s);
           },
           calendarBuilders: CalendarBuilders(
-            defaultBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d)),
+            defaultBuilder: (_, d, __) => _dayBox(d, algo.getType(d)),
             todayBuilder: (_, d, __) =>
                 _dayBox(d, algo.getType(d), today: true),
             selectedBuilder: (_, d, __) =>
@@ -215,9 +211,12 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _dayBox(DateTime day, DayType type,
-      {bool selected = false, bool today = false}) {
-
+  Widget _dayBox(
+    DateTime day,
+    DayType type, {
+    bool selected = false,
+    bool today = false,
+  }) {
     if (selected) {
       return Container(
         margin: const EdgeInsets.all(4),
@@ -228,10 +227,13 @@ class _HomeScreenState extends State<HomeScreen>
           color: LioraColors.primary,
         ),
         alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold)),
+        child: Text(
+          "${day.day}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       );
     }
 
@@ -245,8 +247,10 @@ class _HomeScreenState extends State<HomeScreen>
           border: Border.all(color: LioraColors.primary, width: 2),
         ),
         alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(
+          "${day.day}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
@@ -255,11 +259,19 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     if (type == DayType.fertile) {
-      return _glowCircle(day, LioraColors.fertileGreen, LioraColors.fertileGreenBg);
+      return _glowCircle(
+        day,
+        LioraColors.fertileGreen,
+        LioraColors.fertileGreenBg,
+      );
     }
 
     if (type == DayType.ovulation) {
-      return _glowCircle(day, LioraColors.ovulationPurple, LioraColors.ovulationPurpleBg);
+      return _glowCircle(
+        day,
+        LioraColors.ovulationPurple,
+        LioraColors.ovulationPurpleBg,
+      );
     }
 
     return Container(
@@ -278,9 +290,10 @@ class _HomeScreenState extends State<HomeScreen>
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-              color: glowColor.withOpacity(0.6),
-              blurRadius: glow,
-              spreadRadius: 1)
+            color: glowColor.withOpacity(0.6),
+            blurRadius: glow,
+            spreadRadius: 1,
+          ),
         ],
       ),
       child: Container(
@@ -288,8 +301,10 @@ class _HomeScreenState extends State<HomeScreen>
         height: 40,
         decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
         alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(
+          "${day.day}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -346,16 +361,20 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   Icon(Icons.favorite, color: accent),
                   const SizedBox(height: 10),
-                  Text(title,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: accent)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: accent,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(desc, textAlign: TextAlign.center),
                   const SizedBox(height: 15),
                   TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("Close",
-                          style: TextStyle(color: accent)))
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Close", style: TextStyle(color: accent)),
+                  ),
                 ],
               ),
             ),
@@ -392,8 +411,11 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           Row(
             children: [
-              Icon(Icons.water_drop_rounded,
-                  size: 16, color: LioraColors.primary),
+              Icon(
+                Icons.water_drop_rounded,
+                size: 16,
+                color: LioraColors.primary,
+              ),
               const SizedBox(width: 6),
               Text(
                 "YOUR NEXT PERIOD",
@@ -409,8 +431,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 8),
           Text(
             "${nextStart.day}/${nextStart.month} — ${nextEnd.day}/${nextEnd.month}",
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 20),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
         ],
       ),
@@ -453,10 +474,8 @@ class _HomeScreenState extends State<HomeScreen>
                       builder: (_) => ProductDetailScreen(
                         product: product,
                         onAddToCart: _addToCartFromHome,
-                        onBuyNow: (p) => OrderHelper.showDeliverySheet(
-                          context,
-                          p,
-                        ),
+                        onBuyNow: (p) =>
+                            OrderHelper.showDeliverySheet(context, p),
                       ),
                     ),
                   );
@@ -481,8 +500,7 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Image.network(
                           product.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.image),
+                          errorBuilder: (_, __, ___) => const Icon(Icons.image),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -511,8 +529,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _addToCartFromHome(Product product) {
     if (product.stock <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Out of stock')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Out of stock')));
       return;
     }
 

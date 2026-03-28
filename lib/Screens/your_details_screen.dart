@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/app_theme.dart';
 
 class YourDetailsScreen extends StatefulWidget {
   const YourDetailsScreen({super.key});
@@ -139,11 +140,12 @@ class _YourDetailsScreenState extends State<YourDetailsScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF6F9),
+      backgroundColor: LioraColors.bgLight,
 
       appBar: AppBar(
         title: const Text("Your Details"),
-        backgroundColor: const Color(0xFFE67598),
+        backgroundColor: LioraColors.primary,
+        foregroundColor: Colors.white,
       ),
 
       body: loading
@@ -208,9 +210,7 @@ class _YourDetailsScreenState extends State<YourDetailsScreen> {
                           child: ElevatedButton(
                             style:
                                 ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color(
-                                      0xFFE67598),
+                              backgroundColor: LioraColors.primary,
                               shape:
                                   RoundedRectangleBorder(
                                 borderRadius:

@@ -6,38 +6,36 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFADADD),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFFE67598)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Column(
         children: [
-
           // ================= HEADER =================
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(
-              top: 60,
+              top: 20,
               bottom: 30,
               left: 20,
               right: 20,
             ),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFADADD),
-                  Color(0xFFE6E6FA),
-                ],
+                colors: [Color(0xFFFADADD), Color(0xFFE6E6FA)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(30),
-              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
             ),
             child: Column(
               children: const [
-                Icon(
-                  Icons.favorite,
-                  size: 40,
-                  color: Color(0xFFE67598),
-                ),
+                Icon(Icons.favorite, size: 40, color: Color(0xFFE67598)),
                 SizedBox(height: 10),
                 Text(
                   "LIORA",
@@ -63,13 +61,12 @@ class AboutScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   _sectionTitle("About Liora"),
                   _sectionText(
                     "Liora is a menstrual cycle tracking and wellness companion app "
                     "designed to help users better understand and manage their cycle patterns. "
                     "The application combines personalized cycle prediction logic with "
-                    "a curated wellness experience."
+                    "a curated wellness experience.",
                   ),
 
                   const SizedBox(height: 20),
@@ -78,7 +75,7 @@ class AboutScreen extends StatelessWidget {
                   _sectionText(
                     "Liora uses user-provided data such as cycle length, period duration, "
                     "stress levels, and other cycle-related inputs to calculate predictions. "
-                    "The prediction model adapts based on historical cycle data."
+                    "The prediction model adapts based on historical cycle data.",
                   ),
 
                   const SizedBox(height: 20),
@@ -88,7 +85,7 @@ class AboutScreen extends StatelessWidget {
                     "Cycle predictions are based on historical data patterns and "
                     "personalized algorithm adjustments. Accuracy typically ranges "
                     "between 80–90% depending on cycle consistency and data reliability. "
-                    "Predictions may vary for irregular cycles."
+                    "Predictions may vary for irregular cycles.",
                   ),
 
                   const SizedBox(height: 20),
@@ -96,7 +93,7 @@ class AboutScreen extends StatelessWidget {
                   _sectionTitle("Wellness Integration"),
                   _sectionText(
                     "Liora also provides access to curated menstrual wellness "
-                    "products to support self-care and cycle comfort."
+                    "products to support self-care and cycle comfort.",
                   ),
 
                   const SizedBox(height: 20),
@@ -105,7 +102,7 @@ class AboutScreen extends StatelessWidget {
                   _sectionText(
                     "User data is securely stored and used only for personalized "
                     "prediction and app functionality. Liora does not collect "
-                    "sensitive physical or sensor-based health data."
+                    "sensitive physical or sensor-based health data.",
                   ),
 
                   const SizedBox(height: 20),
@@ -114,7 +111,7 @@ class AboutScreen extends StatelessWidget {
                   _sectionText(
                     "Liora is not a medical diagnostic tool. "
                     "All predictions are for informational purposes only. "
-                    "For medical advice or health concerns, please consult a qualified healthcare professional."
+                    "For medical advice or health concerns, please consult a qualified healthcare professional.",
                   ),
 
                   const SizedBox(height: 30),
@@ -155,13 +152,7 @@ class AboutScreen extends StatelessWidget {
   Widget _sectionText(String text) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          height: 1.6,
-        ),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 13, height: 1.6)),
     );
   }
 }

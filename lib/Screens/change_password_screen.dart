@@ -6,12 +6,10 @@ class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
   @override
-  State<ChangePasswordScreen> createState() =>
-      _ChangePasswordScreenState();
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
-class _ChangePasswordScreenState
-    extends State<ChangePasswordScreen> {
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final oldPasswordController = TextEditingController();
   final newPasswordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
@@ -70,8 +68,7 @@ class _ChangePasswordScreenState
     }
 
     try {
-      await FirebaseAuth.instance
-          .sendPasswordResetEmail(email: user.email!);
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
 
       _showSnack("Reset link sent to ${user.email}");
     } catch (e) {
@@ -81,10 +78,7 @@ class _ChangePasswordScreenState
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: primaryPink,
-        content: Text(message),
-      ),
+      SnackBar(backgroundColor: primaryPink, content: Text(message)),
     );
   }
 
@@ -94,12 +88,19 @@ class _ChangePasswordScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F9),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFDF6F9),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFFE67598)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-
               const SizedBox(height: 20),
 
               const Text(
@@ -116,13 +117,11 @@ class _ChangePasswordScreenState
               _glassCard(
                 child: Column(
                   children: [
-
                     _passwordField(
                       controller: oldPasswordController,
                       label: "Current Password",
                       hidden: hideOld,
-                      toggle: () =>
-                          setState(() => hideOld = !hideOld),
+                      toggle: () => setState(() => hideOld = !hideOld),
                     ),
 
                     const SizedBox(height: 18),
@@ -131,8 +130,7 @@ class _ChangePasswordScreenState
                       controller: newPasswordController,
                       label: "New Password",
                       hidden: hideNew,
-                      toggle: () =>
-                          setState(() => hideNew = !hideNew),
+                      toggle: () => setState(() => hideNew = !hideNew),
                     ),
 
                     const SizedBox(height: 18),
@@ -141,8 +139,7 @@ class _ChangePasswordScreenState
                       controller: confirmPasswordController,
                       label: "Confirm New Password",
                       hidden: hideConfirm,
-                      toggle: () =>
-                          setState(() => hideConfirm = !hideConfirm),
+                      toggle: () => setState(() => hideConfirm = !hideConfirm),
                     ),
 
                     const SizedBox(height: 12),
@@ -170,12 +167,10 @@ class _ChangePasswordScreenState
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryPink,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        onPressed:
-                            isLoading ? null : changePassword,
+                        onPressed: isLoading ? null : changePassword,
                         child: isLoading
                             ? const CircularProgressIndicator(
                                 color: Colors.white,
@@ -211,15 +206,8 @@ class _ChangePasswordScreenState
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.75),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.4),
-            ),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 20,
-                color: Colors.black12,
-              )
-            ],
+            border: Border.all(color: Colors.white.withOpacity(0.4)),
+            boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black12)],
           ),
           child: child,
         ),
@@ -242,14 +230,10 @@ class _ChangePasswordScreenState
         labelText: label,
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         suffixIcon: IconButton(
           icon: Icon(
-            hidden
-                ? Icons.visibility_off
-                : Icons.visibility,
+            hidden ? Icons.visibility_off : Icons.visibility,
             color: primaryPink,
           ),
           onPressed: toggle,

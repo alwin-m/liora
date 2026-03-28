@@ -6,7 +6,7 @@ import 'package:lioraa/services/diet_recommendation_service.dart';
 /// Extensions to DietRecommendationEngine for the demo app
 /// Provides methods to get foods for phases and foods to avoid
 
-extension DietRecommendationExtension on DietRecommendationService {
+extension DietRecommendationExtension on DietRecommendationEngine {
   /// Get recommended foods for a specific cycle phase
   List<String> getFoodsForPhase(CyclePhase phase) {
     switch (phase) {

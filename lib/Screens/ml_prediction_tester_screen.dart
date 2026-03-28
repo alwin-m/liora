@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/ml_cycle_data.dart';
 import '../services/ml_inference_service.dart';
-import '../services/diet_recommendation_service.dart';
 import '../services/mock_ml_trainer.dart';
 
 /// ML PREDICTION TESTER SCREEN
@@ -18,7 +17,6 @@ class MLPredictionTesterScreen extends StatefulWidget {
 
 class _MLPredictionTesterScreenState extends State<MLPredictionTesterScreen> {
   final MLCycleInferenceService _mlService = MLCycleInferenceService();
-  final DietRecommendationEngine _dietEngine = DietRecommendationEngine();
 
   MLCyclePrediction? _prediction;
   bool _isLoading = false;
@@ -78,23 +76,18 @@ class _MLPredictionTesterScreenState extends State<MLPredictionTesterScreen> {
         symptomHistory: [
           SymptomEntry(
             date: now.subtract(const Duration(days: 1)),
-            symptoms: [
-              CycleSymptomWithIntensity(
-                symptom: CycleSymptom.bloating,
-                intensity: 7,
-              ),
-              CycleSymptomWithIntensity(
-                symptom: CycleSymptom.fatigue,
-                intensity: 5,
-              ),
-            ],
+            symptoms: [CycleSymptom.bloating, CycleSymptom.fatigue],
+            symptomIntensity: {
+              CycleSymptom.bloating: 7,
+              CycleSymptom.fatigue: 5,
+            },
           ),
         ],
         moodHistory: [
           MoodEntry(
             date: now.subtract(const Duration(days: 1)),
             moodScore: 6,
-            moodCategory: MoodCategory.calm,
+            category: MoodCategory.calm,
             energyLevel: 5,
             libido: 4,
             emotionalState: ['reflective', 'introspective'],
@@ -103,11 +96,12 @@ class _MLPredictionTesterScreenState extends State<MLPredictionTesterScreen> {
         healthHistory: [
           HealthEntry(
             date: now.subtract(const Duration(days: 1)),
-            sleepHours: 7.5,
+            sleepHours: 7,
             sleepQuality: 7,
             stressLevel: 4,
             diet: 'Balanced meals, high in iron',
             waterIntake: 8,
+            exercise: true,
             exerciseDuration: 30,
             exerciseType: 'Walking',
           ),
@@ -206,7 +200,7 @@ class _MLPredictionTesterScreenState extends State<MLPredictionTesterScreen> {
                               AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Icon(Icons.lightning_bolt),
+                    : const Icon(Icons.bolt_rounded),
                 label: Text(_isLoading ? 'Predicting...' : 'Generate AI Prediction'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,

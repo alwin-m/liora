@@ -10,6 +10,7 @@ class AdvancedCycleProfile {
   final bool isRegularCycle;
   final double weight;      // in kg
   final double height;      // in cm
+  final String? profileImage; // asset path or local file path
 
   // ================= DEFICIENCIES =================
   final List<String> deficiencies; // e.g., ["Iron", "Vitamin B"]
@@ -33,6 +34,9 @@ class AdvancedCycleProfile {
   final bool recentlyPregnant;
   final bool breastfeeding;
 
+  // ================= REGIONAL =================
+  final String region; // "Global", "Kerala", "Germany", "USA"
+
   // ================= CONSTRUCTOR =================
   const AdvancedCycleProfile({
     required this.lastPeriodDate,
@@ -43,6 +47,7 @@ class AdvancedCycleProfile {
     required this.isRegularCycle,
     this.weight = 60.0,
     this.height = 163.0,
+    this.profileImage,
     this.deficiencies = const [],
     required this.stressLevel,
     required this.painLevel,
@@ -57,6 +62,7 @@ class AdvancedCycleProfile {
     required this.onHormonalMedication,
     required this.recentlyPregnant,
     required this.breastfeeding,
+    this.region = "Global",
   });
 
   // ================= COMPUTED =================
@@ -95,6 +101,7 @@ class AdvancedCycleProfile {
       'isRegularCycle': isRegularCycle,
       'weight': weight,
       'height': height,
+      'profileImage': profileImage,
       'deficiencies': deficiencies,
       'stressLevel': stressLevel,
       'painLevel': painLevel,
@@ -109,6 +116,7 @@ class AdvancedCycleProfile {
       'onHormonalMedication': onHormonalMedication,
       'recentlyPregnant': recentlyPregnant,
       'breastfeeding': breastfeeding,
+      'region': region,
     };
   }
 
@@ -123,6 +131,7 @@ class AdvancedCycleProfile {
       isRegularCycle: map['isRegularCycle'],
       weight: map['weight']?.toDouble() ?? 60.0,
       height: map['height']?.toDouble() ?? 163.0,
+      profileImage: map['profileImage'],
       deficiencies: List<String>.from(map['deficiencies'] ?? []),
       stressLevel: map['stressLevel'],
       painLevel: map['painLevel'],
@@ -137,6 +146,7 @@ class AdvancedCycleProfile {
       onHormonalMedication: map['onHormonalMedication'],
       recentlyPregnant: map['recentlyPregnant'],
       breastfeeding: map['breastfeeding'],
+      region: map['region'] ?? "Global",
     );
   }
 
@@ -159,6 +169,7 @@ class AdvancedCycleProfile {
     bool? isRegularCycle,
     double? weight,
     double? height,
+    String? profileImage,
     List<String>? deficiencies,
     int? stressLevel,
     int? painLevel,
@@ -173,6 +184,7 @@ class AdvancedCycleProfile {
     bool? onHormonalMedication,
     bool? recentlyPregnant,
     bool? breastfeeding,
+    String? region,
   }) {
     return AdvancedCycleProfile(
       lastPeriodDate: lastPeriodDate ?? this.lastPeriodDate,
@@ -183,6 +195,7 @@ class AdvancedCycleProfile {
       isRegularCycle: isRegularCycle ?? this.isRegularCycle,
       weight: weight ?? this.weight,
       height: height ?? this.height,
+      profileImage: profileImage ?? this.profileImage,
       deficiencies: deficiencies ?? this.deficiencies,
       stressLevel: stressLevel ?? this.stressLevel,
       painLevel: painLevel ?? this.painLevel,
@@ -197,6 +210,7 @@ class AdvancedCycleProfile {
       onHormonalMedication: onHormonalMedication ?? this.onHormonalMedication,
       recentlyPregnant: recentlyPregnant ?? this.recentlyPregnant,
       breastfeeding: breastfeeding ?? this.breastfeeding,
+      region: region ?? this.region,
     );
   }
 }

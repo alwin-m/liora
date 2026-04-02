@@ -69,11 +69,15 @@ class _ShopScreenState extends State<ShopScreen> {
     return SliverAppBar(
       floating: true,
       pinned: true,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
       title: Text(
-        'Wellness Shop',
-        style: GoogleFonts.playfairDisplay(
-          fontWeight: FontWeight.bold,
+        'Liora Wellness',
+        style: GoogleFonts.outfit(
+          fontWeight: FontWeight.w900,
           fontSize: 24,
+          color: const Color(0xFFE67598),
+          letterSpacing: -0.5,
         ),
       ),
       actions: [
@@ -210,10 +214,15 @@ class _ShopScreenState extends State<ShopScreen> {
                     docs[index].data() as Map<String, dynamic>,
                   );
 
-                  return _ProductCard(
-                    product: product,
-                    onTap: () => _showProductPopup(product),
-                    isOnline: isOnline,
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: _ProductCard(
+                      key: ValueKey(product.id),
+                      product: product,
+                      onTap: () => _showProductPopup(product),
+                      onAddToCart: () => addToCart(product), // ✅ Added
+                      isOnline: isOnline,
+                    ),
                   );
                 }, childCount: docs.length),
               ),
@@ -245,13 +254,16 @@ class _ShopScreenState extends State<ShopScreen> {
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final VoidCallback onAddToCart;
   final bool isOnline;
 
   const _ProductCard({
     required this.product,
     required this.onTap,
+    required this.onAddToCart,
     this.isOnline = true,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -260,15 +272,20 @@ class _ProductCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ],
         ),
         child: Column(
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -276,26 +293,38 @@ class _ProductCard extends StatelessWidget {
                       product.imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.shopping_bag_outlined, color: Colors.grey)),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          onAddToCart();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE67598),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_shopping_cart_rounded, size: 16, color: Colors.white),
+                        ),
+                      ),
                     ),
                     if (product.stock <= 0)
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withAlpha(200),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'OUT OF STOCK',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                      Container(
+                        color: Colors.white.withOpacity(0.6),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'SOLD OUT',
+                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -305,19 +334,26 @@ class _ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₹${product.price}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₹${product.price}',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFE67598)),
+                      ),
+                      const Text("FREE DEL.", style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.bold)),
+                    ],
                   ),
                 ],
               ),

@@ -8,6 +8,7 @@ import '../widgets/cycle_history_sheet.dart';
 import '../services/diet_recommendation_service.dart';
 import '../models/ml_cycle_data.dart';
 import '../widgets/personalized_diet_sheet.dart';
+import '../Screens/cycle_ai_insights_panel.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -91,6 +92,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               selectedDay = s;
               focusedDay = f;
             });
+            _showDayPopup(s);
           },
           headerStyle: const HeaderStyle(
             titleCentered: true,
@@ -372,12 +374,12 @@ class _CalendarScreenState extends State<CalendarScreen>
           const Divider(height: 1, thickness: 1),
           const SizedBox(height: 20),
           
-          // Hydration & Calories
+          // Hydration & Calories (WITH OVERFLOW FIX)
           Row(
             children: [
-              _metricTile(Icons.water_drop_rounded, "Daily Water", guidance.waterAmount),
-              const Spacer(),
-              _metricTile(Icons.local_fire_department_rounded, "Calorie Target", guidance.calories),
+              Expanded(child: _metricTile(Icons.water_drop_rounded, "Liters", guidance.waterAmount)),
+              const SizedBox(width: 12),
+              Expanded(child: _metricTile(Icons.local_fire_department_rounded, "Kcal Goal", guidance.calories)),
             ],
           ),
 
@@ -445,6 +447,7 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   Widget _metricTile(IconData icon, String label, String value) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.all(8),
@@ -455,12 +458,15 @@ class _CalendarScreenState extends State<CalendarScreen>
           child: Icon(icon, size: 18, color: const Color(0xFFE67598)),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey), overflow: TextOverflow.ellipsis),
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       ],
     );
@@ -526,6 +532,110 @@ class _CalendarScreenState extends State<CalendarScreen>
               Text("Cycle updated successfully"),
         ),
       );
+    }
+  }
+
+  // ================= AI INSIGHTS POPUP =================
+
+  void _showDayPopup(DateTime date) {
+    final type = algo.getType(date);
+    CyclePhase phase;
+    switch (type) {
+      case DayType.period: phase = CyclePhase.menstrual; break;
+      case DayType.fertile: phase = CyclePhase.follicular; break;
+      case DayType.ovulation: phase = CyclePhase.ovulation; break;
+      default: phase = CyclePhase.luteal;
+    }
+
+    int dayInPhase = 1;
+    if (type == DayType.period) {
+      final records = CycleSession.history;
+      if (records.isNotEmpty) {
+        final last = records.first;
+        dayInPhase = date.difference(last.startDate).inDays + 1;
+        if (dayInPhase < 1) dayInPhase = 1;
+        if (dayInPhase > 7) dayInPhase = 7;
+      }
+    }
+
+    final phaseInfo = CyclePhaseInfo(
+      phase: phase,
+      dayInPhase: dayInPhase,
+      confidenceScore: 0.94,
+      estimatedStartDate: date.subtract(Duration(days: dayInPhase - 1)),
+      estimatedEndDate: date.add(const Duration(days: 4)),
+      hormonalExplanation: _getHormonalExplanation(phase),
+      bodyChangesExplanation: _getBodyChangesExplanation(phase),
+      expectedSymptoms: _getExpectedSymptoms(phase),
+      recommendedFoods: [],
+      foodsToAvoid: [],
+    );
+
+    final prediction = MLCyclePrediction(
+      nextPeriodDate: algo.getNextPeriodDate(),
+      confidenceScore: 0.94,
+      phaseInfo: phaseInfo,
+      insightSummary: _getInsightSummary(phase),
+      personalizedRecommendations: _getRecommendations(phase),
+      influencingFactors: ["Cycle Regularity", "Historical Trends"],
+      predictionTimestamp: DateTime.now(),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CycleAIInsightsPanel(
+        selectedDate: date,
+        prediction: prediction,
+        phaseInfo: phaseInfo,
+        isToday: isSameDay(date, DateTime.now()),
+      ),
+    );
+  }
+
+  String _getHormonalExplanation(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Estrogen and progesterone are at their lowest levels as the lining sheds.";
+      case CyclePhase.follicular: return "Estrogen is steadily rising to prepare a new follicle in the ovary.";
+      case CyclePhase.ovulation: return "Hormonal peak reached! LH and estrogen are driving peak fertility.";
+      case CyclePhase.luteal: return "Progesterone is now dominant, preparing the body for the next potential cycle.";
+    }
+  }
+
+  String _getBodyChangesExplanation(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Core temperature is low, and your uterine muscles are actively recovering.";
+      case CyclePhase.follicular: return "Energy and physical resilience are increasing as estrogen builds up.";
+      case CyclePhase.ovulation: return "You may experience clearer complexion and a peak in overall physical awareness.";
+      case CyclePhase.luteal: return "A slight shift in metabolic rate often leads to increased appetite and lower energy.";
+    }
+  }
+
+  List<String> _getExpectedSymptoms(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return ["Cramps", "Lower Energy", "Bloating"];
+      case CyclePhase.follicular: return ["Fresh Energy", "Clearer Skin"];
+      case CyclePhase.ovulation: return ["Peak Vitality", "Confidence Boost"];
+      case CyclePhase.luteal: return ["Water Retention", "Food Cravings"];
+    }
+  }
+
+  String _getInsightSummary(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Prioritize rest. This is your body's phase of deep renewal and recovery.";
+      case CyclePhase.follicular: return "Your most productive phase! A perfect time to start projects or focus on growth.";
+      case CyclePhase.ovulation: return "You are at your peak. Your confidence and sociability are likely at their height.";
+      case CyclePhase.luteal: return "Turn inward. Focus on self-care, mindfulness, and keeping a steady nutrition pace.";
+    }
+  }
+
+  List<String> _getRecommendations(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return ["Gentle stretching only", "Warm, iron-rich meals"];
+      case CyclePhase.follicular: return ["High-impact exercise", "Social networking"];
+      case CyclePhase.ovulation: return ["Important meetings", "Intense cardio"];
+      case CyclePhase.luteal: return ["Yoga & Meditation", "Magnesium supplements"];
     }
   }
 }

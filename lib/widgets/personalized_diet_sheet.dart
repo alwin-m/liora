@@ -18,12 +18,20 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
   late double weight;
   late double height;
   late int age;
+  late String region;
   DateTime? dateOfBirth;
   List<String> selectedDeficiencies = [];
 
   final List<String> vitaminOptions = [
     "Vitamin A", "Vitamin B", "Vitamin C", "Vitamin D", "Vitamin E",
     "Iron", "Calcium", "Zinc", "Magnesium"
+  ];
+
+  final List<Map<String, String>> regionOptions = [
+    {"id": "Kerala", "name": "India (Kerala) 🍛", "desc": "Rice, Appam, Fish & Spicy items"},
+    {"id": "USA", "name": "United States 🇺🇸", "desc": "Whole grains, Salmon, Salads"},
+    {"id": "Germany", "name": "Germany (EU) 🥨", "desc": "Rye bread, Sauerkraut, Potatoes"},
+    {"id": "Global", "name": "Global / Standard 🌍", "desc": "Mediterranean / General health"},
   ];
 
   @override
@@ -33,12 +41,12 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
     weight = profile.weight;
     height = profile.height;
     age = profile.age;
+    region = profile.region;
     dateOfBirth = profile.dateOfBirth;
     selectedDeficiencies = List.from(profile.deficiencies);
   }
 
   void _updateDefaultsBasedOnAge(int newAge) {
-    // Basic approximate averages for adult females
     if (newAge < 18) {
       height = 160.0;
       weight = 50.0;
@@ -138,6 +146,7 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
       onHormonalMedication: old.onHormonalMedication,
       recentlyPregnant: old.recentlyPregnant,
       breastfeeding: old.breastfeeding,
+      region: region,
     );
 
     await CycleSession.saveToLocalStorage(updated);
@@ -177,6 +186,7 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
               children: [
                 _biometricsPage(),
                 _deficienciesPage(),
+                _regionPage(),
               ],
             ),
           ),
@@ -201,7 +211,7 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
                 child: SizedBox(
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _currentPage == 0 
+                    onPressed: _currentPage < 2 
                       ? () => _pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
@@ -213,7 +223,7 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
                       elevation: 0,
                     ),
                     child: Text(
-                      _currentPage == 0 ? "Next: Lifestyle" : "Complete Setup", 
+                      _currentPage == 0 ? "Next: Lifestyle" : (_currentPage == 1 ? "Next: Region" : "Save Nutrition Profile"), 
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)
                     ),
                   ),
@@ -415,6 +425,73 @@ class _PersonalizedDietSheetState extends State<PersonalizedDietSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _regionPage() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Select Your Region 🗺️",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "We'll adjust your diet plan based on local food availability and culinary traditions.",
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          
+          ...regionOptions.map((opt) {
+            final isSelected = region == opt["id"];
+            return GestureDetector(
+              onTap: () => setState(() => region = opt["id"]!),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFE67598).withOpacity(0.05) : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFFE67598) : Colors.grey.shade200,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            opt["name"]!,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              color: isSelected ? const Color(0xFFE67598) : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            opt["desc"]!,
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFFE67598))
+                    else
+                      Icon(Icons.circle_outlined, color: Colors.grey.shade300),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

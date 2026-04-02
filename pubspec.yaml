@@ -48,6 +48,9 @@ dependencies:
   timezone: ^0.9.2
   provider: ^6.1.5+1
   connectivity_plus: ^6.0.0
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.4
+  crypto: ^3.0.6
 
  
   

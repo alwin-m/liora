@@ -3,6 +3,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'cycle_session.dart';
+import 'cycle_algorithm.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -11,6 +13,10 @@ class NotificationService {
   static const int reminderTwoDaysId = 100;
   static const int reminderOneDayId = 101;
   static const int reminderPeriodDayId = 102;
+  static const int dailyCycleAlertId = 200;
+
+  static const String periodChannelId = 'period_channel';
+  static const String dailyChannelId = 'daily_cycle_channel';
 
   // ================= INITIALIZE =================
 
@@ -44,7 +50,7 @@ class NotificationService {
     await _notifications.zonedSchedule(
       999,
       "🔔 Test Notification",
-      "Login ചെയ്തിട്ട് 10 seconds കഴിഞ്ഞ് വരുന്ന test notification",
+      "Test notification from Liora scheduled for 10 seconds from now.",
       scheduledDate,
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -87,6 +93,79 @@ class NotificationService {
       "🌸 Period Today",
       "Your cycle may begin today. Stay comfortable and take care 🌷",
     );
+
+    // ✅ New: Schedule Daily Alerts for next 30 days
+    await scheduleDailyCycleAlerts();
+  }
+
+  // ================= DAILY CYCLE UPDATES =================
+
+  static Future<void> scheduleDailyCycleAlerts() async {
+    // 1. Cancel existing
+    await cancelDailyAlerts();
+
+    // 2. Scheduled daily updates for next 30 days
+    if (!CycleSession.isInitialized) return;
+
+    final now = DateTime.now();
+
+    for (int i = 0; i < 30; i++) {
+       final day = now.add(Duration(days: i));
+       final cycleDay = CycleSession.algorithm.getCycleDay(day);
+       final dayType = CycleSession.algorithm.getType(day);
+       
+       String title = "🌸 Liora: Cycle Day $cycleDay";
+       String body = "Stay tracking your health today! 🌷";
+
+       if (dayType == DayType.period) {
+          body = "Cycle Day $cycleDay of your expected period. Take care! 💖";
+       } else if (dayType == DayType.ovulation) {
+          body = "Today is your highly fertile ovulation day! 🌟";
+       } else if (dayType == DayType.fertile) {
+          body = "You are in your fertile window. 💖";
+       }
+
+       await _scheduleDailyReminder(
+          dailyCycleAlertId + i,
+          day,
+          title,
+          body,
+       );
+    }
+  }
+
+  static Future<void> _scheduleDailyReminder(
+      int id, DateTime date, String title, String body) async {
+    
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      date.year,
+      date.month,
+      date.day,
+      10, // Daily alert at 10:00 AM
+    );
+
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    await _notifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          dailyChannelId,
+          'Daily Cycle Updates',
+          channelDescription: 'Updates on your cycle status',
+          importance: Importance.low, 
+          priority: Priority.low,
+          styleInformation: BigTextStyleInformation(body),
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   // ================= SCHEDULE SINGLE REMINDER =================
@@ -114,7 +193,7 @@ class NotificationService {
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'period_channel',
+          periodChannelId,
           'Period Reminders',
           channelDescription: 'Reminder for upcoming period',
           importance: Importance.max,
@@ -146,5 +225,11 @@ class NotificationService {
     await _notifications.cancel(reminderTwoDaysId);
     await _notifications.cancel(reminderOneDayId);
     await _notifications.cancel(reminderPeriodDayId);
+  }
+
+  static Future<void> cancelDailyAlerts() async {
+    for (int i = 0; i < 30; i++) {
+      await _notifications.cancel(dailyCycleAlertId + i);
+    }
   }
 }

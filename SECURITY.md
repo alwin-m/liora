@@ -1,6 +1,6 @@
 # Liora Security Policy & Architecture
 
-**Version:** 2.0 | **Last Updated:** April 2, 2026 | **Status:** Production
+**Version:** 2.0 | **Last Updated:** April 3, 2026 | **Status:** Production
 
 > Liora is a **privacy-first** women's wellness application with **zero-transmission health data architecture**. All menstrual cycle predictions and health information remain exclusively on the user's device.
 

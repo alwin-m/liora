@@ -126,21 +126,31 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _homeUI() {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "LIORA",
-              style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFE67598)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "LIORA",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                      color: Color(0xFFE67598)),
+                ),
+                IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded, color: Colors.grey)),
+              ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             _calendarCard(),
-            const SizedBox(height: 20),
-            _nextPeriodCard(),
+            const SizedBox(height: 32),
+            _minimalNextPeriodCard(),
+            const SizedBox(height: 40),
+            const Text("FOR YOUR WELLNESS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
             const SizedBox(height: 20),
             _recommendedProducts(),
           ],
@@ -152,37 +162,36 @@ class _HomeScreenState extends State<HomeScreen>
   // ================= CALENDAR =================
 
   Widget _calendarCard() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 30, offset: const Offset(0, 10))
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: TableCalendar(
-          focusedDay: focusedDay,
-          firstDay: DateTime.utc(2020),
-          lastDay: DateTime.utc(2030),
-          selectedDayPredicate: (d) => isSameDay(d, selectedDay),
-          onDaySelected: (s, f) {
-            setState(() {
-              selectedDay = s;
-              focusedDay = f;
-            });
-            _showDayPopup(s);
-          },
-          calendarBuilders: CalendarBuilders(
-            defaultBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d)),
-            todayBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), today: true),
-            selectedBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), selected: true),
-          ),
-          headerStyle: const HeaderStyle(
-            titleCentered: true,
-            formatButtonVisible: false,
-          ),
+      padding: const EdgeInsets.all(20),
+      child: TableCalendar(
+        focusedDay: focusedDay,
+        firstDay: DateTime.utc(2020),
+        lastDay: DateTime.utc(2030),
+        selectedDayPredicate: (d) => isSameDay(d, selectedDay),
+        onDaySelected: (s, f) {
+          setState(() {
+            selectedDay = s;
+            focusedDay = f;
+          });
+          _showDayPopup(s);
+        },
+        headerStyle: const HeaderStyle(
+          titleCentered: true,
+          formatButtonVisible: false,
+          titleTextStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF2D1B4D)),
+        ),
+        calendarBuilders: CalendarBuilders(
+          defaultBuilder: (_, d, __) => _dayBox(d, algo.getType(d)),
+          todayBuilder: (_, d, __) => _dayBox(d, algo.getType(d), today: true),
+          selectedBuilder: (_, d, __) => _dayBox(d, algo.getType(d), selected: true),
         ),
       ),
     );
@@ -191,206 +200,98 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _dayBox(DateTime day, DayType type,
       {bool selected = false, bool today = false}) {
 
-    if (selected) {
-      return Container(
-        margin: const EdgeInsets.all(4),
-        width: 40,
-        height: 40,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Color(0xFFE67598),
-        ),
-        alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold)),
-      );
-    }
-
-    if (today) {
-      return Container(
-        margin: const EdgeInsets.all(4),
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-              color: const Color(0xFFE67598), width: 2),
-        ),
-        alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(
-                fontWeight: FontWeight.bold)),
-      );
-    }
-
-    if (type == DayType.period) {
-      return _glowCircle(
-        day,
-        const Color(0xFFE57373),
-        const Color(0xFFFFE0E6),
-      );
-    }
-
-    if (type == DayType.fertile) {
-      return _glowCircle(
-        day,
-        const Color(0xFF81C784),
-        const Color(0xFFDFF6DD),
-      );
-    }
-
-    if (type == DayType.ovulation) {
-      return _glowCircle(
-        day,
-        const Color(0xFFB388FF),
-        const Color(0xFFE8E0F8),
-      );
-    }
+    Color? dotColor;
+    if (type == DayType.period) dotColor = const Color(0xFFE57373);
+    else if (type == DayType.fertile) dotColor = const Color(0xFF81C784);
+    else if (type == DayType.ovulation) dotColor = const Color(0xFFB388FF);
 
     return Container(
       margin: const EdgeInsets.all(4),
       alignment: Alignment.center,
-      child: Text("${day.day}"),
-    );
-  }
-
-  Widget _glowCircle(
-      DateTime day, Color glowColor, Color bgColor) {
-
-    final glow = 6 + (_glowController.value * 14);
-
-    return Container(
-      margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
+        color: selected ? (dotColor?.withOpacity(0.1) ?? Colors.grey[100]) : Colors.transparent,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-              color: glowColor.withOpacity(0.6),
-              blurRadius: glow,
-              spreadRadius: 1)
-        ],
       ),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration:
-            BoxDecoration(shape: BoxShape.circle, color: bgColor),
+      child: Stack(
         alignment: Alignment.center,
-        child: Text("${day.day}",
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  // ================= POPUP =================
-
-  void _showDayPopup(DateTime date) {
-    final type = algo.getType(date);
-
-    String title;
-    String desc;
-    Color accent;
-
-    switch (type) {
-      case DayType.period:
-        title = "Period Day";
-        desc = "Your menstrual phase. Take rest & hydrate well.";
-        accent = const Color(0xFFE57373);
-        break;
-      case DayType.fertile:
-        title = "Fertile Window";
-        desc = "Higher chance of pregnancy during this phase.";
-        accent = const Color(0xFF81C784);
-        break;
-      case DayType.ovulation:
-        title = "Ovulation Day";
-        desc = "Peak fertility day. Highest pregnancy chance.";
-        accent = const Color(0xFFB388FF);
-        break;
-      default:
-        title = "Normal Day";
-        desc = "Regular cycle phase.";
-        accent = Colors.grey;
-    }
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(25),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: accent, width: 2),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.favorite, color: accent),
-                  const SizedBox(height: 10),
-                  Text(title,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: accent)),
-                  const SizedBox(height: 8),
-                  Text(desc, textAlign: TextAlign.center),
-                  const SizedBox(height: 15),
-                  TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context),
-                      child:
-                          Text("Close", style: TextStyle(color: accent)))
-                ],
-              ),
+        children: [
+          if (dotColor != null)
+             Container(
+               width: 30,
+               height: 30,
+               decoration: BoxDecoration(
+                 color: dotColor.withOpacity(0.1),
+                 shape: BoxShape.circle,
+               ),
+             ),
+          
+          Text(
+            "${day.day}",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: (selected || today) ? FontWeight.w900 : FontWeight.w500,
+              color: selected ? (dotColor ?? const Color(0xFF2D1B4D)) : (dotColor ?? Colors.grey[600]),
             ),
           ),
-        ),
+
+          if (today && !selected)
+            Positioned(
+              bottom: 4,
+              child: Container(width: 3, height: 3, decoration: const BoxDecoration(color: Color(0xFFE67598), shape: BoxShape.circle)),
+            ),
+        ],
       ),
     );
   }
 
-  // ================= NEXT PERIOD CARD =================
+  // ================= MINIMAL NEXT PERIOD CARD =================
 
-  Widget _nextPeriodCard() {
+  Widget _minimalNextPeriodCard() {
     final nextStart = algo.getNextPeriodDate();
-    final nextEnd =
-        nextStart.add(const Duration(days: 4));
+    final daysIn = nextStart.difference(DateTime.now()).inDays;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        color: const Color(0xFFFFE3EC),
+        color: const Color(0xFF2D1B4D),
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF2D1B4D).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
+        ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("YOUR NEXT PERIOD"),
-          const SizedBox(height: 6),
+          const Text(
+            "AI FORECAST",
+            style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+          ),
+          const SizedBox(height: 8),
           Text(
-              "${nextStart.day}/${nextStart.month} - ${nextEnd.day}/${nextEnd.month}",
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18)),
+            "Period starts in $daysIn days",
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22),
+          ),
+          const SizedBox(height: 4),
+          Text(
+             "${nextStart.day} ${_getMonth(nextStart.month)}",
+             style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+          ),
         ],
       ),
     );
   }
+
+  String _getMonth(int m) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[m - 1];
+  }
+
   // ================= PRODUCTS =================
 
   Widget _recommendedProducts() {
     return SizedBox(
-      height: 170,
+      height: 180,
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('products')
@@ -406,6 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
 
           return ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: products.length,
             itemBuilder: (_, i) {
               final productDoc = products[i];
@@ -432,34 +334,41 @@ class _HomeScreenState extends State<HomeScreen>
                 },
                 child: Container(
                   width: 140,
-                  margin: const EdgeInsets.only(right: 14),
-                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(right: 18),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(25),
                     color: Colors.white,
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 8),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))
                     ],
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.image),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.network(
+                            product.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.grey),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 12),
                       Text(
                         product.name,
                         maxLines: 1,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         'Rs ${product.price}',
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                           color: Color(0xFFE67598),
                         ),
                       ),
@@ -470,6 +379,88 @@ class _HomeScreenState extends State<HomeScreen>
             },
           );
         },
+      ),
+    );
+  }
+
+  // ================= POPUP =================
+
+  void _showDayPopup(DateTime date) {
+    final type = algo.getType(date);
+
+    String title;
+    String desc;
+    Color accent;
+    IconData icon;
+
+    switch (type) {
+      case DayType.period:
+        title = "Flow Phase";
+        desc = "Your body is resetting. Gentle movement and warmth are your friends today.";
+        accent = const Color(0xFFE57373);
+        icon = Icons.water_drop_rounded;
+        break;
+      case DayType.fertile:
+        title = "Rising Energy";
+        desc = "Your hormones are climbing. A great time for creativity and social connection.";
+        accent = const Color(0xFF81C784);
+        icon = Icons.wb_sunny_rounded;
+        break;
+      case DayType.ovulation:
+        title = "Peak Vitality";
+        desc = "You're at your peak! Strength and confidence are naturally high today.";
+        accent = const Color(0xFFB388FF);
+        icon = Icons.auto_awesome;
+        break;
+      default:
+        title = "Steady Slate";
+        desc = "Balanced hormones. A perfect day for consistent habits and focus.";
+        accent = Colors.grey;
+        icon = Icons.self_improvement_rounded;
+    }
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.1),
+      builder: (_) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(color: accent.withOpacity(0.1), blurRadius: 40, offset: const Offset(0, 10))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: accent.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: accent, size: 32),
+                ),
+                const SizedBox(height: 24),
+                Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: accent)),
+                const SizedBox(height: 12),
+                Text(desc, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600], height: 1.5, fontSize: 14)),
+                const SizedBox(height: 32),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                    decoration: BoxDecoration(color: const Color(0xFF2D1B4D), borderRadius: BorderRadius.circular(20)),
+                    child: const Text("Got it", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -496,9 +487,10 @@ class _HomeScreenState extends State<HomeScreen>
       SnackBar(
         content: Text('${product.name} added to cart'),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF2D1B4D),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 }
-

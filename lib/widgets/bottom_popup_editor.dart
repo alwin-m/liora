@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/smart_prediction_model.dart';
+import '../core/cycle_algorithm.dart';
 import 'liquid_cube_visualization.dart';
 
 class SmartBottomPopupEditor extends StatefulWidget {
@@ -20,39 +21,29 @@ class SmartBottomPopupEditor extends StatefulWidget {
 class _SmartBottomPopupEditorState extends State<SmartBottomPopupEditor> {
   FlowLevel _selectedFlow = FlowLevel.none;
   int _painLevel = 0;
-  PeriodStatus _status = PeriodStatus.active;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.85),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 32),
-                _buildFlowSelector(),
-                const SizedBox(height: 32),
-                _buildPainSlider(),
-                const SizedBox(height: 40),
-                _buildSaveButton(),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(32, 40, 32, MediaQuery.of(context).padding.bottom + 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(50)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 48),
+            _buildFlowSection(),
+            const SizedBox(height: 40),
+            _buildPainSection(),
+            const SizedBox(height: 48),
+            _buildInteractiveSave(),
+          ],
         ),
       ),
     );
@@ -65,116 +56,145 @@ class _SmartBottomPopupEditorState extends State<SmartBottomPopupEditor> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Selected Date", style: TextStyle(color: Colors.grey, fontSize: 14)),
+            const Text("DAILY LOG", style: TextStyle(letterSpacing: 2, fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey)),
+            const SizedBox(height: 4),
             Text(
               "${widget.date.day} ${_getMonth(widget.date.month)}",
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF2D1B4D)),
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF2D1B4D)),
             ),
           ],
         ),
-        IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close_rounded, color: Colors.grey),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+            child: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFlowSelector() {
+  Widget _buildFlowSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Confirm Flow Level", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D1B4D))),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _flowChip(FlowLevel.none, "None"),
-            _flowChip(FlowLevel.light, "Light"),
-            _flowChip(FlowLevel.medium, "Medium"),
-            _flowChip(FlowLevel.heavy, "Heavy"),
-          ],
+        const Text("Confirm Intensity", style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF2D1B4D))),
+        const SizedBox(height: 24),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              _flowNode(FlowLevel.none, "None"),
+              _flowNode(FlowLevel.spotting, "Spotting"),
+              _flowNode(FlowLevel.light, "Light"),
+              _flowNode(FlowLevel.medium, "Medium"),
+              _flowNode(FlowLevel.heavy, "Heavy"),
+              _flowNode(FlowLevel.extreme, "Extreme"),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _flowChip(FlowLevel level, String label) {
+  Widget _flowNode(FlowLevel level, String label) {
     final isSelected = _selectedFlow == level;
     return GestureDetector(
       onTap: () => setState(() => _selectedFlow = level),
-      child: Column(
-        children: [
-          LiquidCubeVisualization(
-            flowLevel: level, 
-            size: 60,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.red : Colors.grey,
-            ),
-          ),
-        ],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2D1B4D) : Colors.transparent,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[200]!),
+        ),
+        child: Column(
+          children: [
+             LiquidCubeVisualization(
+               flowLevel: level, 
+               size: 40,
+               dayType: DayType.period,
+             ),
+             const SizedBox(height: 12),
+             Text(
+               label,
+               style: TextStyle(
+                 fontSize: 11,
+                 fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                 color: isSelected ? Colors.white : Colors.grey,
+               ),
+             ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPainSlider() {
+  Widget _buildPainSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Pain Intensity", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D1B4D))),
-            Text("${_painLevel}/10", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            const Text("Pain Level", style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF2D1B4D))),
+            Text("${_painLevel}/10", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFE63946))),
           ],
         ),
-        Slider(
-          value: _painLevel.toDouble(),
-          min: 0,
-          max: 10,
-          divisions: 10,
-          activeColor: Colors.red,
-          inactiveColor: Colors.red.withOpacity(0.1),
-          onChanged: (v) => setState(() => _painLevel = v.toInt()),
+        const SizedBox(height: 12),
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: const Color(0xFF2D1B4D),
+            inactiveTrackColor: Colors.grey[100],
+            thumbColor: const Color(0xFF2D1B4D),
+            overlayColor: const Color(0xFF2D1B4D).withOpacity(0.1),
+            trackHeight: 6,
+          ),
+          child: Slider(
+            value: _painLevel.toDouble(),
+            min: 0, max: 10, divisions: 10,
+            onChanged: (v) => setState(() => _painLevel = v.toInt()),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: () {
-          final entry = DailyLogEntry(
-            date: widget.date,
-            flowLevel: _selectedFlow,
-            painLevel: _painLevel,
-            periodStatus: _status,
-            isUserEdit: true,
-          );
-          widget.onSave(entry);
-          Navigator.pop(context);
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2D1B4D),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 0,
+  Widget _buildInteractiveSave() {
+    return GestureDetector(
+      onTap: () {
+        widget.onSave(DailyLogEntry(
+          date: widget.date,
+          flowLevel: _selectedFlow,
+          painLevel: _painLevel,
+          periodStatus: PeriodStatus.active,
+          isUserEdit: true,
+        ));
+        Navigator.pop(context);
+      },
+      child: Container(
+        width: double.infinity,
+        height: 70,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2D1B4D),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFF2D1B4D).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
+          ],
         ),
-        child: const Text("Save Log", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        alignment: Alignment.center,
+        child: const Text("Save Entry", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     );
   }
 
   String _getMonth(int m) {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months[m - 1];
+    const mths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return mths[m - 1];
   }
 }

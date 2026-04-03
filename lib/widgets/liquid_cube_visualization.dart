@@ -42,19 +42,23 @@ class _LiquidCubeVisualizationState extends State<LiquidCubeVisualization>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.dayType != DayType.period) {
+       return _buildStaticIndicator();
+    }
+
     double fill;
     switch (widget.flowLevel) {
       case FlowLevel.spotting:
-        fill = 0.15;
+        fill = 0.12;
         break;
       case FlowLevel.light:
-        fill = 0.35;
+        fill = 0.30;
         break;
       case FlowLevel.medium:
-        fill = 0.60;
+        fill = 0.58;
         break;
       case FlowLevel.heavy:
-        fill = 0.85;
+        fill = 0.82;
         break;
       case FlowLevel.extreme:
         fill = 1.0;
@@ -63,40 +67,33 @@ class _LiquidCubeVisualizationState extends State<LiquidCubeVisualization>
         fill = 0.0;
     }
 
-    // Custom fill for Ovulation/Fertile if flowLevel is none
-    if (widget.flowLevel == FlowLevel.none) {
-      if (widget.dayType == DayType.ovulation) fill = 0.4;
-      if (widget.dayType == DayType.fertile) fill = 0.3;
-    }
-
     return Container(
       width: widget.size,
       height: widget.size,
       decoration: BoxDecoration(
-        color: Colors.grey[50], // Very light background
-        borderRadius: BorderRadius.circular(widget.size * 0.28),
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(widget.size * 0.3),
         boxShadow: widget.isExpected 
           ? null 
           : [
             BoxShadow(
-              color: _getBaseColor().withOpacity(0.08),
-              blurRadius: 12,
-              spreadRadius: 2,
-              offset: const Offset(0, 6),
+              color: _getFlowColor().withOpacity(0.12),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             )
           ],
-        border: widget.isExpected 
-          ? Border.all(color: _getBaseColor().withAlpha(60), width: 1.5, style: BorderStyle.solid)
-          : Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+        border: Border.all(
+          color: widget.isExpected 
+            ? _getFlowColor().withOpacity(0.3) 
+            : Colors.white, 
+          width: 2,
+        ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(widget.size * 0.28),
+        borderRadius: BorderRadius.circular(widget.size * 0.3),
         child: Stack(
           children: [
-            // Grid background
-            _buildGrid(),
-            
-            // Waves
+            _buildArtisticGrid(),
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
@@ -106,27 +103,10 @@ class _LiquidCubeVisualizationState extends State<LiquidCubeVisualization>
                     animationValue: _controller.value,
                     fillLevel: fill,
                     isExpected: widget.isExpected,
-                    color: _getBaseColor(),
+                    color: _getFlowColor(),
                   ),
                 );
               },
-            ),
-
-             // Reflection highlight for top corner
-            Positioned(
-              top: 5,
-              left: 5,
-              child: Opacity(
-                opacity: 0.1,
-                child: Container(
-                  width: widget.size * 0.3,
-                  height: widget.size * 0.1,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -134,23 +114,53 @@ class _LiquidCubeVisualizationState extends State<LiquidCubeVisualization>
     );
   }
 
-  Color _getBaseColor() {
+  Widget _buildStaticIndicator() {
+    Color color;
     switch (widget.dayType) {
-      case DayType.period:
-        return const Color(0xFFE63946); // Blood Red
-      case DayType.fertile:
-        return const Color(0xFF81C784); // Fertile Green
-      case DayType.ovulation:
-        return const Color(0xFFB39DDB); // Ovulation Purple
+      case DayType.fertile: color = const Color(0xFF81C784); break;
+      case DayType.ovulation: color = const Color(0xFFB39DDB); break;
+      default: color = Colors.grey[200]!;
+    }
+    
+    return Container(
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(widget.size * 0.3),
+        border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+      ),
+      child: Center(
+        child: Container(
+          width: widget.size * 0.3,
+          height: widget.size * 0.3,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+
+  Color _getFlowColor() {
+    switch (widget.flowLevel) {
+      case FlowLevel.spotting:
+        return const Color(0xFFFAA0A0); // Soft Rose
+      case FlowLevel.light:
+        return const Color(0xFFFF4D4D); // Light Red
+      case FlowLevel.medium:
+        return const Color(0xFFD90429); // Vibrant Red
+      case FlowLevel.heavy:
+        return const Color(0xFF9E0120); // Deep Crimson
+      case FlowLevel.extreme:
+        return const Color(0xFF660708); // Dark Mahogany
       default:
-        return Colors.grey[300]!;
+        return const Color(0xFFE63946);
     }
   }
 
-  Widget _buildGrid() {
+  Widget _buildArtisticGrid() {
     return CustomPaint(
       size: Size(widget.size, widget.size),
-      painter: _GridPainter(),
+      painter: _ArtisticGridPainter(),
     );
   }
 }
@@ -174,15 +184,19 @@ class _LiquidPainter extends CustomPainter {
 
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = color.withOpacity(isExpected ? 0.25 : 0.85);
+      ..shader = LinearGradient(
+        colors: [color, color.withOpacity(0.7)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..color = color.withOpacity(isExpected ? 0.3 : 0.9);
 
     final path = Path();
     final yOffset = size.height * (1 - fillLevel);
-    final waveHeight = size.height * 0.04;
+    final waveHeight = size.height * 0.035;
 
     path.moveTo(0, yOffset);
 
-    // Harmonic wave calculation
     for (double x = 0; x <= size.width; x++) {
       final y = yOffset +
           math.sin((x / size.width * 2 * math.pi) + (animationValue * 2 * math.pi)) *
@@ -196,43 +210,40 @@ class _LiquidPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    // Dynamic Foam/Surface Line
+    // Surface highlight
     final surfacePaint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withOpacity(0.4)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 1.5;
     
     final surfacePath = Path();
     surfacePath.moveTo(0, yOffset);
     for (double x = 0; x <= size.width; x++) {
       final y = yOffset +
           math.sin((x / size.width * 2 * math.pi) + (animationValue * 2 * math.pi)) *
-              waveHeight;
+              waveHeight + 2;
       surfacePath.lineTo(x, y);
     }
     canvas.drawPath(surfacePath, surfacePaint);
   }
 
   @override
-  bool shouldRepaint(covariant _LiquidPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue || 
-           oldDelegate.fillLevel != fillLevel;
-  }
+  bool shouldRepaint(covariant _LiquidPainter oldDelegate) => true;
 }
 
-class _GridPainter extends CustomPainter {
+class _ArtisticGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.04)
-      ..strokeWidth = 1;
+      ..color = Colors.grey.withOpacity(0.06)
+      ..strokeWidth = 0.5;
 
-    const divisions = 4;
+    const divisions = 3;
     final step = size.width / divisions;
 
     for (int i = 1; i < divisions; i++) {
-      canvas.drawLine(Offset(step * i, 0), Offset(step * i, size.height), paint);
-      canvas.drawLine(Offset(0, step * i), Offset(size.width, step * i), paint);
+        canvas.drawLine(Offset(step * i, 0), Offset(step * i, size.height), paint);
+        canvas.drawLine(Offset(0, step * i), Offset(size.width, step * i), paint);
     }
   }
 

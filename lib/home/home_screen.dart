@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen>
     return SafeArea(
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+        padding: const EdgeInsets.fromLTRB(28, 32, 28, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -137,25 +137,42 @@ class _HomeScreenState extends State<HomeScreen>
                 const Text(
                   "LIORA",
                   style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
+                      letterSpacing: 3,
                       color: Color(0xFFE67598)),
                 ),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded, color: Colors.grey)),
+                _circularIcon(Icons.notifications_none_rounded),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             _calendarCard(),
-            const SizedBox(height: 32),
-            _minimalNextPeriodCard(),
             const SizedBox(height: 40),
-            const Text("FOR YOUR WELLNESS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-            const SizedBox(height: 20),
+            _minimalNextPeriodCard(),
+            const SizedBox(height: 48),
+            const Text(
+              "CURATED FOR YOU", 
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)
+            ),
+            const SizedBox(height: 24),
             _recommendedProducts(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _circularIcon(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 5))
+        ],
+      ),
+      child: Icon(icon, color: Colors.grey[400], size: 20),
     );
   }
 
@@ -165,12 +182,12 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(45),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 30, offset: const Offset(0, 10))
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 40, offset: const Offset(0, 15))
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: TableCalendar(
         focusedDay: focusedDay,
         firstDay: DateTime.utc(2020),
@@ -186,7 +203,9 @@ class _HomeScreenState extends State<HomeScreen>
         headerStyle: const HeaderStyle(
           titleCentered: true,
           formatButtonVisible: false,
-          titleTextStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF2D1B4D)),
+          titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF2D1B4D)),
+          leftChevronIcon: Icon(Icons.chevron_left_rounded, size: 22, color: Colors.grey),
+          rightChevronIcon: Icon(Icons.chevron_right_rounded, size: 22, color: Colors.grey),
         ),
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (_, d, __) => _dayBox(d, algo.getType(d)),

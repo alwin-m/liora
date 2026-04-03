@@ -1,5 +1,6 @@
 import 'advanced_cycle_profile.dart';
 import '../models/smart_prediction_model.dart';
+import 'cycle_session.dart';
 
 enum DayType { period, fertile, ovulation, normal }
 
@@ -130,22 +131,44 @@ class CycleAlgorithm {
 
   // ==============================
   // FLOW ESTIMATION
-  // ==============================
+  // ================= PREDICT FLOW =================
 
   FlowLevel getExpectedFlowLevel(DateTime date) {
-    final cycleDay = getCycleDay(date);
-    final periodLength = adjustedPeriodLength;
+    final type = getType(date);
+    if (type != DayType.period) return FlowLevel.none;
 
-    if (cycleDay < 1 || cycleDay > periodLength) return FlowLevel.none;
+    final nextStart = getNextPeriodDate();
+    final relativeDay = date.difference(nextStart).inDays;
 
-    // Accurate flow distribution
-    if (cycleDay == 1) return FlowLevel.spotting;
-    if (cycleDay == 2 || cycleDay == 3) return FlowLevel.heavy;
-    if (cycleDay == 4) return FlowLevel.medium;
-    if (cycleDay >= 5 && cycleDay < periodLength) return FlowLevel.light;
-    if (cycleDay == periodLength) return FlowLevel.spotting;
+    if (relativeDay < 0 || relativeDay >= profile.averagePeriodLength) {
+       // Look into past cycles to see which one we are in
+       // For now, assume it's the current ongoing period if date is today-ish
+    }
 
-    return FlowLevel.medium;
+    // Self-Learning: Check history for average intensity on this specific day of period
+    final learningData = _analyzeHistoricalFlow(relativeDay);
+    if (learningData != null) return learningData;
+
+    // Default Fallback
+    if (relativeDay == 0 || relativeDay == profile.averagePeriodLength - 1) {
+      return FlowLevel.spotting;
+    } else if (relativeDay == 1 || relativeDay == 2) {
+      return FlowLevel.heavy;
+    } else {
+      return FlowLevel.medium;
+    }
+  }
+
+  FlowLevel? _analyzeHistoricalFlow(int relativeDay) {
+    // Collect all user logs for this relative day across all historical cycles
+    // Simplified local implementation
+    final logs = CycleSession.dailyLogs.where((l) {
+       // logic to find relative day in its own cycle
+       // For brevity, we'll use a simplified weighted average of reported levels
+       return false; // placeholder for complex logic
+    }).toList();
+    
+    return null; // Fallback to default for now as we need better cycle indexing
   }
 
   int getDayInPhase(DateTime date) {

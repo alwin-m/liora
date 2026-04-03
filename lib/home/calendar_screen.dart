@@ -4,6 +4,9 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../core/cycle_session.dart';
 import '../core/cycle_algorithm.dart';
+import '../models/smart_prediction_model.dart';
+import '../widgets/bottom_popup_editor.dart';
+import '../widgets/liquid_cube_visualization.dart';
 import '../widgets/cycle_history_sheet.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -24,38 +27,41 @@ class _CalendarScreenState extends State<CalendarScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F9),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          "Cycle Calendar",
-          style: TextStyle(
-            color: Color(0xFFE67598),
-            fontWeight: FontWeight.bold,
-          ),
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _calendarCard(),
+            const SizedBox(height: 24),
+            _selectedDayDetails(),
+            const SizedBox(height: 40),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history,
-                color: Color(0xFFE67598)),
-            onPressed: _showHistorySheet,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_calendar_outlined,
-                color: Color(0xFFE67598)),
-            onPressed: _editPeriodDate,
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          _calendarCard(),
-          const SizedBox(height: 20),
-          _selectedDayInsight(),
-          const SizedBox(height: 20),
-        ],
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: const Text(
+        "Liora Calendar",
+        style: TextStyle(
+          color: Color(0xFF2D1B4D),
+          fontWeight: FontWeight.w900,
+          fontSize: 24,
+          letterSpacing: -1,
+        ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.history_rounded, color: Colors.deepPurple),
+          onPressed: _showHistorySheet,
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
@@ -63,13 +69,15 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   Widget _calendarCard() {
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      elevation: 0,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(35),
+        side: BorderSide(color: Colors.grey[200]!, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: TableCalendar(
           focusedDay: focusedDay,
           firstDay: DateTime.utc(2020),
@@ -84,154 +92,181 @@ class _CalendarScreenState extends State<CalendarScreen>
           headerStyle: const HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
+            titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF2D1B4D)),
           ),
           calendarBuilders: CalendarBuilders(
-            defaultBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d)),
-            todayBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), today: true),
-            selectedBuilder: (_, d, __) =>
-                _dayBox(d, algo.getType(d), selected: true),
+            defaultBuilder: (_, d, __) => _dayCell(d, false),
+            todayBuilder: (_, d, __) => _dayCell(d, true),
+            selectedBuilder: (_, d, __) => _dayCell(d, false, selected: true),
           ),
         ),
       ),
     );
   }
 
-  Widget _dayBox(DateTime day, DayType type,
-      {bool selected = false, bool today = false}) {
-    Color color = Colors.transparent;
-
-    if (type == DayType.period) {
-      color = const Color(0xFFFFE0E6);
-    } else if (type == DayType.fertile) {
-      color = const Color(0xFFDFF6DD);
-    } else if (type == DayType.ovulation) {
-      color = const Color(0xFFE8E0F8);
-    }
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+  Widget _dayCell(DateTime day, bool isToday, {bool selected = false}) {
+    final type = algo.getType(day);
+    final log = CycleSession.getLogForDay(day);
+    final expectedFlow = algo.getExpectedFlowLevel(day);
+    
+    return Container(
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(14),
-        border: selected
-            ? Border.all(
-                color: Colors.pinkAccent, width: 2)
-            : today
-                ? Border.all(
-                    color: Colors.deepOrangeAccent,
-                    width: 2)
-                : null,
+        color: selected ? Colors.deepPurple.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        "${day.day}",
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+           // Miniature Cube for ANY window (Fertile, Ovulation, Period)
+           if (type != DayType.normal)
+             Opacity(
+               opacity: 0.15,
+               child: LiquidCubeVisualization(
+                 flowLevel: type == DayType.period ? (log?.flowLevel ?? expectedFlow) : FlowLevel.none,
+                 size: 32,
+                 isExpected: log == null,
+                 dayType: type,
+               ),
+             ),
+
+           Text(
+            "${day.day}",
+            style: TextStyle(
+              fontWeight: (selected || isToday) ? FontWeight.w900 : FontWeight.normal,
+              color: selected ? Colors.deepPurple : (type == DayType.period ? Colors.red[400] : (type == DayType.ovulation ? Colors.purple[400] : Colors.grey[800])),
+            ),
+          ),
+
+          if (isToday)
+            Positioned(
+              bottom: 4,
+              child: Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(color: Colors.pinkAccent, shape: BoxShape.circle),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  // ================= BIG INSIGHT CARD =================
+  // ================= SELECTED DAY DETAILS (FROM IMAGE) =================
 
-  Widget _selectedDayInsight() {
+  Widget _selectedDayDetails() {
+    final log = CycleSession.getLogForDay(selectedDay);
     final type = algo.getType(selectedDay);
+    final expectedFlow = algo.getExpectedFlowLevel(selectedDay);
 
-    String title;
-    String desc;
-    Color g1;
-    Color g2;
-
-    switch (type) {
-      case DayType.period:
-        title = "Period Phase";
-        desc =
-            "Your menstrual phase. Take rest and stay hydrated.";
-        g1 = const Color(0xFFFF9AA2);
-        g2 = const Color(0xFFFFD1DC);
-        break;
-
-      case DayType.fertile:
-        title = "Fertile Window";
-        desc =
-            "These are your higher fertility days.";
-        g1 = const Color(0xFF81C784);
-        g2 = const Color(0xFFC8E6C9);
-        break;
-
-      case DayType.ovulation:
-        title = "Ovulation Day";
-        desc =
-            "Peak fertility day of your cycle.";
-        g1 = const Color(0xFFB39DDB);
-        g2 = const Color(0xFFE1BEE7);
-        break;
-
-      default:
-        title = "Normal Phase";
-        desc =
-            "Hormonal balance phase.";
-        g1 = const Color(0xFFF8BBD0);
-        g2 = const Color(0xFFE1BEE7);
-    }
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(28),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [g1, g2],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: g1.withOpacity(0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10)),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+               Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Selected Date", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    "${selectedDay.day} ${_getMonthName(selectedDay.month)}",
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 32, color: Color(0xFF2D1B4D)),
+                  ),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () => _openSmartEditor(selectedDay),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 0,
+                ),
+                child: const Text("Log Flow", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            desc,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Selected Date: ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
-            ),
-          ),
+          const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 32),
+          _buildFlowDisplay(log, expectedFlow, type),
         ],
       ),
     );
   }
 
-  // ================= HISTORY SHEET =================
+  Widget _buildFlowDisplay(DailyLogEntry? log, FlowLevel expected, DayType type) {
+    final isPeriod = type == DayType.period;
+    
+    return Row(
+      children: [
+        LiquidCubeVisualization(
+          flowLevel: log?.flowLevel ?? (isPeriod ? expected : FlowLevel.none),
+          size: 90,
+          isExpected: log == null,
+          dayType: type,
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isPeriod ? (log != null ? "Confirmed Flow: ${log.flowLevel.name.toUpperCase()}" : "Expected Flow: ${expected.name.toUpperCase()}") : "Current Phase: ${type.name.toUpperCase()}",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: isPeriod ? Colors.red : (type == DayType.ovulation ? Colors.purple : (type == DayType.fertile ? Colors.green : Colors.grey[400])),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                log != null ? "Pain Intensity: ${log.painLevel}/10" : (isPeriod ? "Forecasted intensity: ${expected.name}" : "Enjoy your day!"),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ),
+              Text(
+                "Status: ${log != null ? "User Confirmed" : (isPeriod ? "AI Prediction" : "Normal Mode")}",
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getMonthName(int m) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[m - 1];
+  }
+
+  void _openSmartEditor(DateTime date) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return SmartBottomPopupEditor(
+          date: date,
+          onSave: (entry) async {
+            await CycleSession.updateDailyLog(entry);
+            setState(() {});
+          },
+        );
+      },
+    );
+  }
 
   void _showHistorySheet() {
     showModalBottomSheet(
@@ -240,57 +275,11 @@ class _CalendarScreenState extends State<CalendarScreen>
       backgroundColor: Colors.transparent,
       builder: (_) {
         return Container(
-          height:
-              MediaQuery.of(context).size.height * 0.65,
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(
-                top: Radius.circular(30)),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(30)),
-            child: BackdropFilter(
-              filter:
-                  ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                color:
-                    Colors.white.withOpacity(0.9),
-                child: CycleHistorySheet(
-                  history: CycleSession.history,
-                ),
-              ),
-            ),
-          ),
+          height: MediaQuery.of(context).size.height * 0.75,
+          color: Colors.white,
+          child: CycleHistorySheet(history: CycleSession.history),
         );
       },
     );
   }
-
-  // ================= EDIT PERIOD =================
-
-  Future<void> _editPeriodDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-      initialDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      await CycleSession.addCycleRecord(picked);
-
-      setState(() {
-        selectedDay = picked;
-        focusedDay = picked;
-      });
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content:
-              Text("Cycle updated successfully"),
-        ),
-      );
-    }
-  }
-}
+}

@@ -2,11 +2,13 @@ import 'advanced_cycle_profile.dart';
 import 'cycle_algorithm.dart';
 import 'local_storage.dart';
 import '../models/cycle_record.dart';
+import '../models/smart_prediction_model.dart';
 
 class CycleSession {
   static AdvancedCycleProfile? _profile;
   static CycleAlgorithm? _algorithm;
   static List<CycleRecord> _history = [];
+  static List<DailyLogEntry> _dailyLogs = [];
 
   // ================= GETTERS =================
 
@@ -25,6 +27,7 @@ class CycleSession {
   }
 
   static List<CycleRecord> get history => _history;
+  static List<DailyLogEntry> get dailyLogs => _dailyLogs;
 
   static bool get isInitialized => _profile != null;
 
@@ -33,6 +36,7 @@ class CycleSession {
   static Future<void> initialize() async {
     final storedProfile = await LocalStorage.getProfile();
     final storedHistory = await LocalStorage.getCycleHistory();
+    final storedLogs = await LocalStorage.getDailyLogs(); 
 
     if (storedProfile != null) {
       _profile = storedProfile;
@@ -42,6 +46,37 @@ class CycleSession {
     if (storedHistory != null) {
       _history = storedHistory;
     }
+
+    _dailyLogs = storedLogs;
+  }
+
+  // ================= LOGS =================
+
+  static DailyLogEntry? getLogForDay(DateTime date) {
+    try {
+      return _dailyLogs.firstWhere(
+        (l) => l.date.year == date.year && 
+               l.date.month == date.month && 
+               l.date.day == date.day
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> updateDailyLog(DailyLogEntry log) async {
+    final index = _dailyLogs.indexWhere(
+      (l) => l.date.year == log.date.year && 
+             l.date.month == log.date.month && 
+             l.date.day == log.date.day
+    );
+
+    if (index != -1) {
+      _dailyLogs[index] = log;
+    } else {
+      _dailyLogs.add(log);
+    }
+    await LocalStorage.saveDailyLogs(_dailyLogs);
   }
 
   // ================= LOAD =================

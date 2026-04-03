@@ -1,4 +1,5 @@
 import 'advanced_cycle_profile.dart';
+import '../models/smart_prediction_model.dart';
 
 enum DayType { period, fertile, ovulation, normal }
 
@@ -128,6 +129,30 @@ class CycleAlgorithm {
   }
 
   // ==============================
+  // FLOW ESTIMATION
+  // ==============================
+
+  FlowLevel getExpectedFlowLevel(DateTime date) {
+    final cycleDay = getCycleDay(date);
+    final periodLength = adjustedPeriodLength;
+
+    if (cycleDay < 1 || cycleDay > periodLength) return FlowLevel.none;
+
+    // Accurate flow distribution
+    if (cycleDay == 1) return FlowLevel.spotting;
+    if (cycleDay == 2 || cycleDay == 3) return FlowLevel.heavy;
+    if (cycleDay == 4) return FlowLevel.medium;
+    if (cycleDay >= 5 && cycleDay < periodLength) return FlowLevel.light;
+    if (cycleDay == periodLength) return FlowLevel.spotting;
+
+    return FlowLevel.medium;
+  }
+
+  int getDayInPhase(DateTime date) {
+    return getCycleDay(date);
+  }
+
+  // ==============================
   // CONFIDENCE SCORE (90% CAP)
   // ==============================
 
@@ -141,4 +166,4 @@ class CycleAlgorithm {
 
     return score.clamp(0.75, 0.90);
   }
-}
+}

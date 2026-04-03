@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'advanced_cycle_profile.dart';
 import '../models/cycle_record.dart';
+import '../models/smart_prediction_model.dart';
 
 class LocalStorage {
   static const String _profileKey = "advanced_cycle_profile";
@@ -106,6 +107,35 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_profileKey);
     await prefs.remove(_onboardingKey);
+  }
+
+  static const String _dailyLogsKey = "daily_period_logs";
+
+  // ==============================
+  // DAILY LOGS PERSISTENCE
+  // ==============================
+
+  static Future<void> saveDailyLogs(List<DailyLogEntry> logs) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = logs.map((l) => l.toJson()).toList();
+    await prefs.setString(_dailyLogsKey, jsonEncode(jsonList));
+  }
+
+  static Future<List<DailyLogEntry>> getDailyLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_dailyLogsKey);
+    if (jsonString == null) return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonString);
+      return decoded.map((e) => DailyLogEntry.fromJson(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> clearDailyLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_dailyLogsKey);
   }
 
   // ==============================

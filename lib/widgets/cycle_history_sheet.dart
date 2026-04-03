@@ -1,130 +1,97 @@
 import 'package:flutter/material.dart';
 import '../models/cycle_record.dart';
+import '../models/smart_prediction_model.dart';
+import 'liquid_cube_visualization.dart';
+import '../core/cycle_algorithm.dart';
 
 class CycleHistorySheet extends StatelessWidget {
   final List<CycleRecord> history;
 
-  const CycleHistorySheet({
-    super.key,
-    required this.history,
-  });
+  const CycleHistorySheet({super.key, required this.history});
 
   @override
   Widget build(BuildContext context) {
-    if (history.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(
-          child: Text(
-            "No cycle history yet",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 8),
           Container(
             width: 40,
             height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           const Text(
             "Cycle History",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFE67598),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF2D1B4D)),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: history.isEmpty 
+              ? _buildEmptyState() 
+              : ListView.builder(
+                  itemCount: history.length,
+                  itemBuilder: (context, index) => _buildHistoryItem(history[index]),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_rounded, size: 64, color: Colors.grey[200]),
+          const SizedBox(height: 12),
+          const Text("No cycles recorded yet", style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(CycleRecord record) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: Row(
+        children: [
+          const LiquidCubeVisualization(flowLevel: FlowLevel.medium, size: 50, dayType: DayType.period),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${record.startDate.day}/${record.startDate.month}/${record.startDate.year}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  "Cycle Length: ${record.cycleLength} days",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: history.length,
-              itemBuilder: (context, index) {
-                final record = history[index];
-
-                String status;
-                Color statusColor;
-
-                if (record.deviation == 0) {
-                  status = "On Time";
-                  statusColor = Colors.green;
-                } else if (record.deviation > 0) {
-                  status = "${record.deviation} days late";
-                  statusColor = Colors.orange;
-                } else {
-                  status =
-                      "${record.deviation.abs()} days early";
-                  statusColor = Colors.blue;
-                }
-
-                return Container(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 8),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(16),
-                    color: Colors.white,
-                    boxShadow: const [
-                      BoxShadow(
-                        blurRadius: 6,
-                        color: Colors.black12,
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${record.startDate.day}/${record.startDate.month}/${record.startDate.year}",
-                            style: const TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Cycle Length: ${record.cycleLength} days",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        status,
-                        style: TextStyle(
-                          fontWeight:
-                              FontWeight.bold,
-                          color: statusColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          Column(
+            children: [
+              Text(
+                record.deviation >= 0 ? "+${record.deviation}" : "${record.deviation}",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900, 
+                  color: record.deviation.abs() <= 1 ? Colors.green : Colors.orange,
+                  fontSize: 18,
+                ),
+              ),
+              const Text("days", style: TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
           ),
         ],
       ),

@@ -1,6 +1,6 @@
 # Liora Security Policy & Architecture
 
-**Version:** 2.0 | **Last Updated:** April 3, 2026 | **Status:** Production
+**Version:** 3.0 | **Last Updated:** April 4, 2026 | **Status:** Production (Adaptive AI Update)
 
 > Liora is a **privacy-first** women's wellness application with **zero-transmission health data architecture**. All menstrual cycle predictions and health information remain exclusively on the user's device.
 
@@ -31,18 +31,19 @@
 
 ### 🏗️ Data Isolation Strategy
 
-Liora implements **strict data layer separation** preventing health information from ever reaching backend systems:
+Liora implements **strict data layer separation** preventing health information from ever reaching backend systems. E-commerce features have been decommissioned in this branch to maximize the focus on health security:
 
 ```
-Layer 1: AUTHENTICATION & COMMERCE (Backend Storage)
+Layer 1: AUTHENTICATION (Backend Storage)
 ├── Firebase Authentication (Email/Password)
-├── Cloud Firestore (User profiles, orders, admin data)
+├── User profile (Name, Role, Metadata)
 └── Storage: HTTPS encrypted, server-side backup
 
-Layer 2: MEDICAL DATA (Device-Only Storage)
+Layer 2: ADAPTIVE HEALTH DATA & AI (Device-Only Storage)
 ├── Cycle tracking (periods, predictions, phases)
+├── Annie Hathaway Algorithm (Training weights, Recency bias)
+├── Daily Flow Logs (Percentage, Pain metrics)
 ├── Health symptoms and metrics
-├── Personal wellness notes
 └── Storage: SharedPreferences + Platform encryption
 
 Layer 3: SESSION & SECURITY (Runtime Only)
@@ -56,8 +57,8 @@ Layer 3: SESSION & SECURITY (Runtime Only)
 | Data Type | Storage Location | Encryption | Method |
 |-----------|-----------------|-----------|--------|
 | **Credentials** | Firebase Auth | Server-side SHA256 + Bcrypt | Firebase-managed |
-| **Commerce Data** | Cloud Firestore | TLS in-transit + at-rest | AES-256 server-side |
-| **Medical Data** | SharedPreferences | Platform-native encryption | iOS Keychain / Android Keystore |
+| **Profile Data** | Cloud Firestore | TLS in-transit + at-rest | AES-256 server-side |
+| **AI/Medical Data**| SharedPreferences | Platform-native encryption | iOS Keychain / Android Keystore |
 | **API Keys** | Secure Storage | AES-256 encrypted | `flutter_secure_storage` |
 | **Biometric Data** | Device TEE | Hardware-backed encryption | OS-level (no app access) |
 
@@ -84,9 +85,6 @@ bleedingPatterns             // Local analysis only
 - Cleared automatically on app uninstall
 - Never included in Firebase Firestore queries
 
-### ✅ AUTHENTICATION DATA (Backend-Encrypted)
-
-```dart
 // ✅ ALLOWED FIELDS (Secure Backend Storage)
 email                        // Encrypted in transit
 name                         // AES-256 at rest
@@ -94,25 +92,23 @@ role (admin/user)           // Access-controlled
 createdAt timestamp         // Server-managed
 profileCompleted status     // Progress tracking
 sessionTokens               // Firebase-managed, short-lived
-```
 
 **Implementation:**
 - Firebase Authentication handles password hashing
-- User documents in Firestore contain NO medical fields
+- User documents in Firestore contain NO medical or AI training fields
 - All backend requests use HTTPS/TLS
 - Database rules restrict access to own user document
 
-### 🛒 COMMERCE DATA (Backend-Encrypted)
+### 🤖 ANNIE HATHAWAY AI (LOCAL TRAINING ONLY)
 
-```dart
-// ✅ ORDER RECORDS (Secure Backend Storage)
-orders/{orderId}
-├── productId / productName   # What was ordered
-├── price / quantity          # Transaction details
-├── shippingAddress           # Delivery location
-├── phone                      # Contact info
-└── [NO medical fields]       # Never linked to health data
-```
+Annie Hathaway is a self-learning algorithm that improves based on logged data.
+
+| Data Type | Mitigation |
+|-----------|------------|
+| **Flow Percentages** | Local-only analysis (Recency-weighted) |
+| **Pain Intensity** | Stored in history, never transmitted |
+| **Algorithm Weights** | Recomputed locally each session |
+| **Learning Phase** | Zero cloud dependency (works offline) |
 
 ---
 

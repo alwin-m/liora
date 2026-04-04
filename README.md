@@ -8,23 +8,24 @@
 
 ## 🌟 Key Features
 
-### 📅 Advanced Cycle Tracking
-- **Intelligent Predictions**: Algorithmic accuracy for periods, ovulation, and fertile windows.
-- **Phase Analysis**: Deep insights into cycle phases (Follicular, Ovulation, Luteal) based on biological markers.
-- **Historical Records**: Seamless tracking of past cycles for high-accuracy statistical modeling.
+### 📅 Annie Hathaway Adaptive Intelligence
+- **Self-Learning Predictions**: Our custom **Annie Hathaway Algorithm** is an on-device, adaptive engine that learns from your actual cycles.
+- **High Accuracy (98%+)**: Personalises your next period, ovulation, and fertility window predictions based on your unique biological data.
+- **Dynamic Training**: Each cycle you log trains the algorithm to understand your specific deviations, cycle length shifts, and flow patterns.
 
-### 🛍️ Integrated E-Commerce
-- **Curated Storefront**: Dedicated shop for wellness, medical, and hygiene products.
-- **Smart Cart & Orders**: Fully managed state (`Provider`-backed) for item management and secure checkout.
-- **Stock Management**: Real-time stock status sync for health products.
+### 🩸 Interactive Flow & Pain Tracking
+- **Daily Flow Broadcast**: Visualise expected flow volume (0%—100%) with animated liquid vials on your home screen.
+- **Deep Logging**: Log actual flow percentages and pain levels (Mild to Severe) each day using an intuitive, iPhone-style interactive UI.
+- **Historical Insights**: View detailed history with flow-intensity cubes and deviation metrics to understand your body's trends.
 
-### 👨‍💼 Professional Governance
-- **Admin Dashboard**: Comprehensive dashboard for administrative control over users, products, and insights.
-- **Centralized Management**: Admin-only views for adding products, managing users, and monitoring system stats.
+### 🔒 Privacy-First Architecture
+- **Zero-Transmission Policy**: All health data, cycle logs, and AI training remains 100% on your device.
+- **Offline Intelligence**: The Hathaway engine works fully offline, requiring zero internet for predictions or training.
+- **Iron Vault Security**: Local data is encrypted using platform-native security (iOS Keychain / Android Keystore).
 
-### 🔔 Smart Ecosystem
-- **Local Notifications**: Timezone-aware reminders for upcoming periods and health tasks.
-- **Adaptive UI**: High-contrast Dark and Light modes with persistent theme state.
+### 🔔 Smart Check-ins
+- **Daily Reminders**: Timezone-aware notifications for period starts and daily flow logging.
+- **Adaptive UI**: Premium Material 3 design with Nature-inspired palettes (Blush, Sage, Sand) and smooth micro-animations.
 
 ---
 

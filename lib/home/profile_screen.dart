@@ -497,14 +497,82 @@ class _ProfileScreenState extends State<ProfileScreen>
 
               _settingsSection(),
 
-              const SizedBox(height:30),
+              const SizedBox(height: 30),
 
-              const Text(
-                "Liora v1.0.0",
-                style: TextStyle(color: Colors.grey),
+              GestureDetector(
+                onDoubleTap: () {
+                  HapticFeedback.heavyImpact();
+                  _showEasterEgg(context);
+                },
+                child: const Text(
+                  "Liora v2.2.2",
+                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                ),
               )
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showEasterEgg(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+            ),
+            const SizedBox(height: 24),
+            const Icon(Icons.auto_awesome, color: Color(0xFFE67598), size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              "Hidden Treasure Unlocked! ✨",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF3B1A2A)),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "You've found the Liora source vault. Explore the journey, contribute, or just say hi on GitHub!",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.code_rounded),
+                label: const Text("VISIT REPOSITORY", style: TextStyle(fontWeight: FontWeight.w900)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B1A2A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () {
+                  Clipboard.setData(const ClipboardData(text: "https://github.com/alwin-m/liora"));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Link copied to clipboard! 🚀")),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("MAYBE LATER", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
       ),
     );

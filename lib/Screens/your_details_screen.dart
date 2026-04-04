@@ -142,6 +142,10 @@ class _YourDetailsScreenState extends State<YourDetailsScreen> {
       backgroundColor: const Color(0xFFFDF6F9),
 
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text("Your Details"),
         backgroundColor: const Color(0xFFE67598),
       ),

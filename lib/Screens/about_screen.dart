@@ -32,14 +32,24 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
             child: Column(
-              children: const [
-                Icon(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFE67598)),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Icon(
                   Icons.favorite,
                   size: 40,
                   color: Color(0xFFE67598),
                 ),
-                SizedBox(height: 10),
-                Text(
+                const SizedBox(height: 10),
+                const Text(
                   "LIORA",
                   style: TextStyle(
                     fontSize: 26,
@@ -47,8 +57,8 @@ class AboutScreen extends StatelessWidget {
                     letterSpacing: 1,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
+                const SizedBox(height: 6),
+                const Text(
                   "Menstrual Wellness Companion",
                   style: TextStyle(fontSize: 13),
                 ),
@@ -121,7 +131,7 @@ class AboutScreen extends StatelessWidget {
 
                   Center(
                     child: Text(
-                      "Version 1.0.0",
+                      "Version 2.2.2",
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade600,

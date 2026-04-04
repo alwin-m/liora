@@ -99,8 +99,15 @@ class _ChangePasswordScreenState
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-
-              const SizedBox(height: 20),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: primaryPink),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
 
               const Text(
                 "Change Password",

@@ -255,9 +255,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               child: Container(
                 color:
                     Colors.white.withOpacity(0.9),
-                child: CycleHistorySheet(
-                  history: CycleSession.history,
-                ),
+                child: const CycleHistorySheet(),
               ),
             ),
           ),

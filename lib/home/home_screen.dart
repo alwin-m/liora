@@ -5,6 +5,8 @@ import 'package:table_calendar/table_calendar.dart';
 import '../core/cycle_session.dart';
 import '../core/cycle_algorithm.dart';
 import '../widgets/blood_flow_widget.dart';
+import '../widgets/day_log_sheet.dart';
+import '../widgets/period_confirm_sheet.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
 
@@ -64,8 +66,97 @@ class _HomeScreenState extends State<HomeScreen>
         backgroundColor: const Color(0xFFFDF6F9),
         body: pages[index],
         bottomNavigationBar: _bottomNav(),
+        floatingActionButton: index == 0 ? _fab() : null,
       ),
     );
+  }
+
+  // ================= FAB =================
+
+  Widget _fab() {
+    return FloatingActionButton.extended(
+      onPressed: () => _showQuickLogSheet(context),
+      backgroundColor: const Color(0xFFE67598),
+      elevation: 4,
+      icon: const Icon(Icons.add_rounded, color: Colors.white),
+      label: const Text(
+        "LOG DAY",
+        style: TextStyle(
+            color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  void _showQuickLogSheet(BuildContext ctx) {
+    final today = DateTime.now();
+    final type = CycleSession.isAnnieTrained 
+        ? (CycleSession.annie.getNextPeriodDate().day == today.day && CycleSession.annie.getNextPeriodDate().month == today.month ? DayType.period : algo.getType(today))
+        : algo.getType(today);
+
+    // If today is a predicted period start but not confirmed, show confirm sheet
+    final nextPredicted = CycleSession.isAnnieTrained 
+        ? CycleSession.annie.getNextPeriodDate() 
+        : algo.getNextPeriodDate();
+    
+    final bool isNearPredicted = today.difference(nextPredicted).inDays.abs() <= 2;
+
+    if (type == DayType.period || (isNearPredicted && CycleSession.activeCycleLog == null)) {
+      if (CycleSession.activeCycleLog == null) {
+        showModalBottomSheet(
+          context: ctx,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => PeriodConfirmSheet(
+            predictedDate: nextPredicted,
+            onConfirm: (actual) async {
+              await CycleSession.confirmPeriodStart(actual);
+              setState(() {});
+            },
+          ),
+        );
+      } else {
+        final active = CycleSession.activeCycleLog!;
+        final dayNum = today.difference(active.actualStart!).inDays + 1;
+        final existing = CycleSession.getDayLog(dayNum);
+
+        showModalBottomSheet(
+          context: ctx,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => DayLogSheet(
+            dayNumber: dayNum,
+            totalDays: algo.adjustedPeriodLength,
+            date: today,
+            initialFlow: existing?.flowPercent ?? 50,
+            initialPain: existing?.painLevel ?? 0,
+            onSave: (flow, pain) async {
+              await CycleSession.logDay(
+                dayNumber: dayNum,
+                date: today,
+                flowPercent: flow,
+                painLevel: pain,
+              );
+              setState(() {});
+            },
+          ),
+        );
+      }
+    } else {
+      // Normal day but user wants to log period start manually
+      showModalBottomSheet(
+        context: ctx,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => PeriodConfirmSheet(
+          predictedDate: nextPredicted,
+          onConfirm: (actual) async {
+            await CycleSession.confirmPeriodStart(actual);
+            setState(() {});
+          },
+        ),
+      );
+    }
   }
 
   // ================= BOTTOM NAV =================
@@ -335,11 +426,35 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 8),
                   Text(desc, textAlign: TextAlign.center),
                   const SizedBox(height: 15),
-                  TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context),
-                      child:
-                          Text("Close", style: TextStyle(color: accent)))
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: accent),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text("Close", style: TextStyle(color: accent)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showLogSheetForDate(date);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: const Text("Log Day", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -347,6 +462,57 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+  }
+
+  void _showLogSheetForDate(DateTime date) {
+    // Similar to _showQuickLogSheet but for a specific date
+    final nextPredicted = CycleSession.isAnnieTrained 
+        ? CycleSession.annie.getNextPeriodDate() 
+        : algo.getNextPeriodDate();
+
+    final active = CycleSession.activeCycleLog;
+    
+    if (active != null && date.isAfter(active.actualStart!.subtract(const Duration(days: 1))) && 
+        date.isBefore(active.actualStart!.add(const Duration(days: 10)))) {
+      
+      final dayNum = date.difference(active.actualStart!).inDays + 1;
+      final existing = CycleSession.getDayLog(dayNum);
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => DayLogSheet(
+          dayNumber: dayNum,
+          totalDays: algo.adjustedPeriodLength,
+          date: date,
+          initialFlow: existing?.flowPercent ?? 50,
+          initialPain: existing?.painLevel ?? 0,
+          onSave: (flow, pain) async {
+            await CycleSession.logDay(
+              dayNumber: dayNum,
+              date: date,
+              flowPercent: flow,
+              painLevel: pain,
+            );
+            setState(() {});
+          },
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => PeriodConfirmSheet(
+          predictedDate: nextPredicted,
+          onConfirm: (actual) async {
+            await CycleSession.confirmPeriodStart(actual);
+            setState(() {});
+          },
+        ),
+      );
+    }
   }
 
   // ================= BLOOD FLOW CARD =================
@@ -392,9 +558,15 @@ class _HomeScreenState extends State<HomeScreen>
   // ================= NEXT PERIOD CARD =================
 
   Widget _nextPeriodCard() {
-    final nextStart = algo.getNextPeriodDate();
-    final nextEnd =
-        nextStart.add(const Duration(days: 4));
+    final nextStart = CycleSession.isAnnieTrained 
+        ? CycleSession.annie.getNextPeriodDate()
+        : algo.getNextPeriodDate();
+    
+    final nextEnd = nextStart.add(Duration(
+      days: CycleSession.isAnnieTrained 
+          ? CycleSession.annie.predictedPeriodLength - 1
+          : algo.adjustedPeriodLength - 1
+    ));
 
     return Container(
       width: double.infinity,

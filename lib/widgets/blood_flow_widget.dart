@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/cycle_session.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  BloodFlowWidget
@@ -46,6 +47,9 @@ class _BloodFlowWidgetState extends State<BloodFlowWidget>
   };
 
   List<double> get _dayFractions {
+    if (CycleSession.isAnnieTrained) {
+      return CycleSession.annie.predictDailyFlowProfile(widget.periodLength);
+    }
     final profile = _flowProfiles[widget.flowIntensity] ?? _flowProfiles[1]!;
     return List.generate(
       widget.periodLength,
@@ -188,6 +192,40 @@ class _BloodFlowWidgetState extends State<BloodFlowWidget>
 
   // ─── Intensity badge ────────────────────────────────────────────────────────
   Widget _intensityBadge() {
+    if (CycleSession.isAnnieTrained) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE67598).withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: const Color(0xFFE67598), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE67598).withValues(alpha: 0.2),
+              blurRadius: 8,
+              spreadRadius: 1,
+            )
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome, size: 10, color: Color(0xFFE67598)),
+            SizedBox(width: 4),
+            Text(
+              'Personalised',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFE67598),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     const labels = ['Light', 'Medium', 'Heavy'];
     const colors = [Color(0xffffc1d8), Color(0xffE67598), Color(0xffC1446F)];
     final idx = widget.flowIntensity.clamp(0, 2);

@@ -39,10 +39,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   final ImagePicker _picker = ImagePicker();
 
   final List<String> defaultAvatars = [
-    "assets/avatars/1.png",
-    "assets/avatars/2.png",
-    "assets/avatars/3.png",
-    "assets/avatars/4.png",
+    "assets/avatars/1.png.png",
+    "assets/avatars/2.png.png",
+    "assets/avatars/3.png.png",
+    "assets/avatars/4.png.png",
   ];
 
   @override
@@ -264,16 +264,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ================= DEFAULT AVATAR =================
 
   Future<void> _selectDefaultAvatar(String asset) async {
-
-    final bytes = await rootBundle.load(asset);
-
-    final base64 =
-        base64Encode(bytes.buffer.asUint8List());
-
-    await _saveAvatar(base64);
+    await _saveAvatar(asset);
 
     setState(() {
-      avatarBase64 = base64;
+      avatarBase64 = asset;
     });
   }
 
@@ -607,10 +601,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                 backgroundColor:
                     const Color(0xFFE67598),
 
-                backgroundImage: avatarBase64!=null
-                    ? MemoryImage(
-                        base64Decode(
-                            avatarBase64!))
+                backgroundImage: avatarBase64 != null
+                    ? (avatarBase64!.startsWith("assets/")
+                        ? AssetImage(avatarBase64!) as ImageProvider
+                        : MemoryImage(base64Decode(avatarBase64!)))
                     : null,
 
                 child: avatarBase64==null
@@ -672,6 +666,8 @@ class _ProfileScreenState extends State<ProfileScreen>
 
           Text("Cycle Health Score: $confidence%"),
           Text("Next Period: ${nextPeriod.day}/${nextPeriod.month}/${nextPeriod.year}"),
+          const SizedBox(height: 5),
+          const Text("Liora v2.2.2", style: TextStyle(fontSize: 10, color: Colors.grey)),
         ],
       ),
     );

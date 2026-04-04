@@ -2,9 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/vial_painter.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  DayLogSheet — iPhone-style bottom sheet for logging a single period day
-//  User logs:  flow percentage (slider)  +  pain level (pills)
+//  Now upgraded with real-time liquid-fill vial animations.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class DayLogSheet extends StatefulWidget {
@@ -29,26 +31,62 @@ class DayLogSheet extends StatefulWidget {
   State<DayLogSheet> createState() => _DayLogSheetState();
 }
 
-class _DayLogSheetState extends State<DayLogSheet> {
+class _DayLogSheetState extends State<DayLogSheet> with TickerProviderStateMixin {
   late double _flow;  // 0.0–100.0
   late int _pain;     // 0–3
+
+  late final AnimationController _waveController;
+  late final AnimationController _fillController;
+  late Animation<double> _fillAnimation;
 
   @override
   void initState() {
     super.initState();
     _flow = widget.initialFlow.toDouble();
     _pain = widget.initialPain;
+
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _fillController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fillAnimation = Tween<double>(begin: _flow / 100, end: _flow / 100).animate(
+      CurvedAnimation(parent: _fillController, curve: Curves.easeOutCubic),
+    );
+    
+    _fillController.forward();
+  }
+
+  @override
+  void dispose() {
+    _waveController.dispose();
+    _fillController.dispose();
+    super.dispose();
+  }
+
+  void _updateFlow(double newValue) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _flow = newValue;
+    });
+    
+    // Animate the liquid level change
+    _fillAnimation = Tween<double>(
+      begin: _fillAnimation.value,
+      end: newValue / 100,
+    ).animate(
+      CurvedAnimation(parent: _fillController, curve: Curves.easeOutCubic),
+    );
+    _fillController.forward(from: 0);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  String get _flowEmoji {
-    if (_flow < 15) return '🩹';
-    if (_flow < 35) return '💧';
-    if (_flow < 60) return '🩸';
-    if (_flow < 80) return '🩸💧';
-    return '🩸🩸';
-  }
-
+  
   String get _flowLabel {
     if (_flow < 15) return 'Spotting';
     if (_flow < 35) return 'Light';
@@ -87,18 +125,18 @@ class _DayLogSheetState extends State<DayLogSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFFDF6F9),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -4))],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, -6))],
       ),
       padding: EdgeInsets.fromLTRB(
-          24, 14, 24, MediaQuery.of(context).viewInsets.bottom + 36),
+          24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Handle ──
+          // ── Drag Handle ──
           Container(
-            width: 38,
-            height: 4,
+            width: 42,
+            height: 5,
             decoration: BoxDecoration(
               color: Colors.grey.shade300,
               borderRadius: BorderRadius.circular(10),
@@ -106,96 +144,118 @@ class _DayLogSheetState extends State<DayLogSheet> {
           ),
           const SizedBox(height: 20),
 
-          // ── Title row ──
+          // ── Header Row ──
           Row(children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFE67598),
                 borderRadius: BorderRadius.circular(22),
-                boxShadow: [BoxShadow(color: const Color(0xFFE67598).withValues(alpha: 0.3), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: const Color(0xFFE67598).withValues(alpha: 0.35), blurRadius: 12)],
               ),
               child: Text(
                 'LOG  ·  DAY ${widget.dayNumber}',
                 style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w800,
-                  color: Colors.white, letterSpacing: 0.5,
+                  fontSize: 13, fontWeight: FontWeight.w900,
+                  color: Colors.white, letterSpacing: 0.8,
                 ),
               ),
             ),
             const Spacer(),
             Text(
               _formatDate(widget.date),
-              style: const TextStyle(fontSize: 13, color: Color(0xFFB56180)),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFFB56180)),
             ),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // ── Flow section ──
-          Row(children: [
-            Text(_flowEmoji, style: const TextStyle(fontSize: 28)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text(
-                    _flowLabel,
-                    style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700,
-                      color: _flowColor,
+          // ── Interactive Flow Section ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // LARGE INTERACTIVE VIAL
+              SizedBox(
+                width: 70,
+                height: 120,
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_fillAnimation, _waveController]),
+                  builder: (context, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: CustomPaint(
+                      painter: VialPainter(
+                        fillFraction: _fillAnimation.value,
+                        wavePhase: _waveController.value,
+                        color: _flowColor,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _flowColor.withValues(alpha: 0.5),
+                            width: 2.5,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${_flow.round()}%',
-                    style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.w800,
-                      color: _flowColor,
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: _flowColor,
-                    inactiveTrackColor: const Color(0xFFFFD6E4),
-                    thumbColor: _flowColor,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-                    trackHeight: 6,
-                  ),
-                  child: Slider(
-                    value: _flow,
-                    min: 0,
-                    max: 100,
-                    divisions: 20,
-                    onChanged: (v) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _flow = v);
-                    },
                   ),
                 ),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              const SizedBox(width: 24),
+              
+              // Flow Controls
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('0%', style: TextStyle(fontSize: 10, color: Color(0xFFB56180))),
-                    Text('Flow amount', style: TextStyle(fontSize: 10, color: Color(0xFFB56180))),
-                    Text('100%', style: TextStyle(fontSize: 10, color: Color(0xFFB56180))),
+                    Text(
+                      _flowLabel.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2, color: _flowColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_flow.round()}% FLOW',
+                      style: TextStyle(
+                        fontSize: 32, fontWeight: FontWeight.w900,
+                        color: _flowColor, height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: _flowColor,
+                        inactiveTrackColor: const Color(0xFFFFD6E4),
+                        thumbColor: _flowColor,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 4),
+                        trackHeight: 10,
+                        overlayColor: _flowColor.withValues(alpha: 0.2),
+                      ),
+                      child: Slider(
+                        value: _flow,
+                        min: 0,
+                        max: 100,
+                        divisions: 100, // Smoother slide
+                        onChanged: _updateFlow,
+                      ),
+                    ),
                   ],
                 ),
-              ]),
-            ),
-          ]),
-          const SizedBox(height: 24),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
 
-          // ── Pain section ──
+          // ── Pain Section ──
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Pain level',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFB56180)),
+              'PAIN INTENSITY',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Color(0xFFB56180)),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: List.generate(4, (i) {
               final selected = _pain == i;
@@ -208,23 +268,26 @@ class _DayLogSheetState extends State<DayLogSheet> {
                       setState(() => _pain = i);
                     },
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: selected ? _painColors[i] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: selected ? _painText[i] : Colors.grey.shade200,
-                          width: selected ? 1.5 : 1,
+                          width: selected ? 2.0 : 1.5,
                         ),
+                        boxShadow: selected ? [
+                          BoxShadow(color: _painText[i].withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))
+                        ] : null,
                       ),
                       child: Text(
-                        _painLabels[i],
+                        _painLabels[i].split(' ').last, // Text only for compact fit
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected ? _painText[i] : Colors.grey,
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                          color: selected ? _painText[i] : Colors.grey.shade600,
                         ),
                       ),
                     ),
@@ -233,25 +296,26 @@ class _DayLogSheetState extends State<DayLogSheet> {
               );
             }),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 36),
 
-          // ── Save button ──
+          // ── Save Button ──
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 56,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE67598),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 6,
+                shadowColor: const Color(0xFFE67598).withValues(alpha: 0.4),
               ),
               onPressed: () {
                 HapticFeedback.mediumImpact();
                 Navigator.pop(context);
                 widget.onSave(_flow.round(), _pain);
               },
-              child: const Text('Save Log', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              child: const Text('SAVE CYCLE LOG', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             ),
           ),
         ],
@@ -259,3 +323,4 @@ class _DayLogSheetState extends State<DayLogSheet> {
     );
   }
 }
+

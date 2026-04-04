@@ -7,6 +7,7 @@ import '../core/cycle_algorithm.dart';
 import '../widgets/blood_flow_widget.dart';
 import '../widgets/day_log_sheet.dart';
 import '../widgets/period_confirm_sheet.dart';
+import '../widgets/vial_painter.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
 
@@ -371,86 +372,160 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _showDayPopup(DateTime date) {
     final type = algo.getType(date);
+    final bool isPeriod = type == DayType.period;
 
     String title;
     String desc;
     Color accent;
+    String phaseLabel = "HEALTH INSIGHT";
 
     switch (type) {
       case DayType.period:
-        title = "Period Day";
-        desc = "Your menstrual phase. Take rest & hydrate well.";
+        title = "Menstrual Phase";
+        desc = "Your body is in renewal. Focus on iron-rich foods, gentle movement, and rest.";
         accent = const Color(0xFFE57373);
+        phaseLabel = "PERIOD · ACTIVE";
         break;
       case DayType.fertile:
         title = "Fertile Window";
-        desc = "Higher chance of pregnancy during this phase.";
+        desc = "Estrogen levels are rising. You may feel more energetic and social today.";
         accent = const Color(0xFF81C784);
+        phaseLabel = "FERTILE · HIGH";
         break;
       case DayType.ovulation:
         title = "Ovulation Day";
-        desc = "Peak fertility day. Highest pregnancy chance.";
+        desc = "Peak fertility. Your body is at its most fertile state of the cycle.";
         accent = const Color(0xFFB388FF);
+        phaseLabel = "OVULATION · PEAK";
         break;
       default:
-        title = "Normal Day";
-        desc = "Regular cycle phase.";
-        accent = Colors.grey;
+        title = "Follicular Phase";
+        desc = "Regular cycle activity. A great time for new projects and gym sessions.";
+        accent = Colors.grey.shade400;
+        phaseLabel = "REGULAR PHASE";
     }
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (_) => Dialog(
+      barrierColor: Colors.black.withOpacity(0.25),
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: accent, width: 2),
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: accent.withOpacity(0.4), width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.favorite, color: accent),
-                  const SizedBox(height: 10),
-                  Text(title,
+                  // Phase Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      phaseLabel,
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: accent)),
+                        fontSize: 10, fontWeight: FontWeight.w800,
+                        color: accent, letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Title
+                  Text(
+                    title,
+                    style: TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w900,
+                        color: accent, letterSpacing: -0.5),
+                  ),
                   const SizedBox(height: 8),
-                  Text(desc, textAlign: TextAlign.center),
-                  const SizedBox(height: 15),
+
+                  // Visual Element (Vial for Period Days, Icon for others)
+                  if (isPeriod)
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 20),
+                      width: 60,
+                      height: 100,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: AnimatedBuilder(
+                          animation: _glowController,
+                          builder: (context, _) {
+                            final cycleDay = algo.getCycleDay(date);
+                            final profile = [0.45, 0.70, 0.60, 0.40, 0.22]; // Mock for dialog
+                            final fraction = cycleDay > 0 && cycleDay <= profile.length ? profile[cycleDay-1] : 0.3;
+                            
+                            return CustomPaint(
+                              painter: VialPainter(
+                                fillFraction: fraction,
+                                wavePhase: _glowController.value,
+                                color: accent,
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: accent.withOpacity(0.6), width: 2),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Icon(Icons.auto_awesome_rounded, size: 48, color: accent),
+                    ),
+
+                  Text(
+                    desc,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15, color: Colors.grey.shade700,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Buttons
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: accent),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey.shade600,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: Text("Close", style: TextStyle(color: accent)),
+                          child: const Text("Close", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.pop(context);
+                            Navigator.pop(ctx);
                             _showLogSheetForDate(date);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text("Log Day", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          child: const Text("Log Entry", style: TextStyle(fontWeight: FontWeight.w900)),
                         ),
                       ),
                     ],
@@ -463,6 +538,10 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+
+  // REUSE the painter logic locally for simplicity or import it
+  // I'll add the painter definition to the bottom of home_screen.dart to avoid import issues
+
 
   void _showLogSheetForDate(DateTime date) {
     // Similar to _showQuickLogSheet but for a specific date

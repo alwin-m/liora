@@ -16,7 +16,6 @@ import '../core/cycle_algorithm.dart';
 import '../core/notification_service.dart';
 
 import '../Screens/change_password_screen.dart';
-import '../Screens/my_orders_screen.dart';
 import '../Screens/about_screen.dart';
 import '../Screens/Login_Screen.dart';
 
@@ -638,14 +637,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           },
         ),
 
-        ListTile(
-          leading: const Icon(Icons.shopping_bag_outlined),
-          title: const Text("My Orders"),
-          onTap: (){
-            Navigator.push(context,
-                MaterialPageRoute(builder:(_)=>const MyOrdersScreen()));
-          },
-        ),
+
         ListTile(
           leading: const Icon(Icons.person_outline),
           title: const Text("Your Details"),

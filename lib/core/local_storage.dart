@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'advanced_cycle_profile.dart';
 import '../models/cycle_record.dart';
+import '../models/hathaway_cycle_log.dart';
 
 class LocalStorage {
   static const String _profileKey = "advanced_cycle_profile";
   static const String _onboardingKey = "onboarding_completed";
+  static const String _annieKey = "hathaway_logs"; // Annie Hathaway Algorithm
   static const String _historyKey = "cycle_history";
 
   // ==============================
@@ -123,5 +125,34 @@ class LocalStorage {
 
   static Future<AdvancedCycleProfile?> getProfile() async {
     return loadAdvancedProfile();
+  }
+
+  // ==============================
+  // ANNIE HATHAWAY LOGS
+  // ==============================
+
+  static Future<void> saveAnnieLogs(List<HathawayCycleLog> logs) async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(logs.map((l) => l.toJson()).toList());
+    await prefs.setString(_annieKey, encoded);
+  }
+
+  static Future<List<HathawayCycleLog>> loadAnnieLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_annieKey);
+    if (raw == null) return [];
+    try {
+      final list = jsonDecode(raw) as List;
+      return list
+          .map((e) => HathawayCycleLog.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> clearAnnieLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_annieKey);
   }
 }

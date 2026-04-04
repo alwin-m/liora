@@ -1,17 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:provider/provider.dart';
 
 import '../core/cycle_session.dart';
 import '../core/cycle_algorithm.dart';
-import '../models/product_model.dart';
-import '../services/cart_provider.dart';
+import '../widgets/blood_flow_widget.dart';
 import 'calendar_screen.dart';
-import '../shop/shop_screen.dart';
-import '../shop/show_product.dart';
-import '../shop/order_helper.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -53,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen>
     final pages = [
       _homeUI(),
       const CalendarScreen(),
-      const ShopScreen(),
       const ProfileScreen(),
     ];
 
@@ -93,8 +86,7 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           _navItem(Icons.home_rounded, 0),
           _navItem(Icons.calendar_month_rounded, 1),
-          _navItem(Icons.shopping_bag_rounded, 2),
-          _navItem(Icons.person_rounded, 3),
+          _navItem(Icons.person_rounded, 2),
         ],
       ),
     );
@@ -142,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 20),
             _nextPeriodCard(),
             const SizedBox(height: 20),
-            _recommendedProducts(),
+            _bloodFlowCard(),
           ],
         ),
       ),
@@ -357,6 +349,46 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ================= BLOOD FLOW CARD =================
+
+  Widget _bloodFlowCard() {
+    final algorithm = CycleSession.algorithm;
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+
+    // Only show "in-period" state when actually in the period phase.
+    // Fertile and ovulation days get the same treatment as normal days
+    // (per design spec: no special ovulation/fertile styling — just show
+    // the upcoming period flow forecast on those days too).
+    final todayType = algorithm.getType(today);
+    final bool isCurrentPeriod = (todayType == DayType.period);
+
+    int todayPeriodDay = 0;
+    DateTime periodStart;
+
+    if (isCurrentPeriod) {
+      final cycleDay = algorithm.getCycleDay(today);
+      todayPeriodDay = cycleDay; // cycle day 1..N == period day 1..N
+      periodStart = today.subtract(Duration(days: cycleDay - 1));
+    } else {
+      // Normal / fertile / ovulation → show upcoming period forecast
+      periodStart = algorithm.getNextPeriodDate();
+      todayPeriodDay = 0;
+    }
+
+    return BloodFlowWidget(
+      periodLength: algorithm.adjustedPeriodLength,
+      flowIntensity: algorithm.profile.flowIntensity,
+      periodStartDate: periodStart,
+      todayPeriodDay: todayPeriodDay,
+      isCurrentPeriod: isCurrentPeriod,
+    );
+  }
+
+
   // ================= NEXT PERIOD CARD =================
 
   Widget _nextPeriodCard() {
@@ -383,120 +415,6 @@ class _HomeScreenState extends State<HomeScreen>
                   fontWeight: FontWeight.bold,
                   fontSize: 18)),
         ],
-      ),
-    );
-  }
-  // ================= PRODUCTS =================
-
-  Widget _recommendedProducts() {
-    return SizedBox(
-      height: 170,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .where('trending', isEqualTo: true)
-            .limit(5)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final products = snapshot.data!.docs;
-
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: products.length,
-            itemBuilder: (_, i) {
-              final productDoc = products[i];
-              final product = Product.fromMap(
-                productDoc.id,
-                productDoc.data() as Map<String, dynamic>,
-              );
-
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(
-                        product: product,
-                        onAddToCart: _addToCartFromHome,
-                        onBuyNow: (p) => OrderHelper.showDeliverySheet(
-                          context,
-                          p,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 140,
-                  margin: const EdgeInsets.only(right: 14),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.white,
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 8),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.image),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        product.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Rs ${product.price}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE67598),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  void _addToCartFromHome(Product product) {
-    if (product.stock <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Out of stock')));
-      return;
-    }
-
-    context.read<CartProvider>().addItem(
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      stock: product.stock,
-      icon: Icons.shopping_bag_rounded,
-      image: product.imageUrl,
-    );
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} added to cart'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
       ),
     );
   }

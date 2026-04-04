@@ -117,7 +117,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:provider/provider.dart'; // ✅ added
 
 import 'Screens/Splash_Screen.dart';
 import 'Screens/Signup_Screen.dart';
@@ -126,16 +125,11 @@ import 'Screens/verify_email_screen.dart';
 import 'home/Home_Screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
-import 'admin/admin_dashboard.dart';
-import 'admin/add_product.dart';
-import 'admin/view_products.dart';
-import 'admin/manage_users.dart';
 
 import 'core/cycle_session.dart';
 import 'core/notification_service.dart';
 import 'core/app_settings.dart';
 
-import 'services/cart_provider.dart'; // ✅ added
 
 final ValueNotifier<ThemeMode> themeNotifier =
     ValueNotifier(ThemeMode.system);
@@ -171,12 +165,7 @@ Future<void> main() async {
   themeNotifier.value =
       isDark ? ThemeMode.dark : ThemeMode.light;
 
-  runApp(
-    ChangeNotifierProvider( // ✅ only change
-      create: (_) => CartProvider(),
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -220,14 +209,6 @@ class MyApp extends StatelessWidget {
                 const HomeScreen(),
             '/onboarding': (context) =>
                 const OnboardingQuestionsScreen(),
-            '/admin': (context) =>
-                const AdminDashboard(),
-            '/addProduct': (context) =>
-                const AddProductScreen(),
-            '/viewProducts': (context) =>
-                const ViewProductsScreen(),
-            '/manageUsers': (context) =>
-                const ManageUsersScreen(),
           },
         );
       },

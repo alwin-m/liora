@@ -27,6 +27,7 @@ metadata:
 - 🛍️ **Integrated E-Commerce**: Seamless shopping experience for health products.
 - 👨‍💼 **Admin Governance**: Full control over content and user management.
 - 🌓 **Adaptive Aesthetics**: Intelligent light/dark mode with custom themes.
+- 💧 **Fluid Data Visualisations**: Animated, data-driven UI metaphors (e.g., liquid-fill blood-flow containers) that translate clinical values into intuitive visuals.
 
 ---
 
@@ -92,5 +93,32 @@ graph TD
 
 ---
 
-**Last Updated**: March 26, 2026  
+---
+
+## Animation & Visualisation Features
+
+### 💧 Blood Flow Forecast Widget (`lib/widgets/blood_flow_widget.dart`)
+
+**Purpose**: Communicate daily menstrual flow volume through a natural liquid-fill metaphor instead of clinical numbers.
+
+**Design Protocol**:
+- Each day of the period is represented as a tall rounded container ("vial").
+- A sinusoidal wave surface animates continuously to suggest living, flowing liquid.
+- Containers fill up *staggered and sequentially* on first render (rising animation), so the user reads left-to-right like a story.
+- Fill heights follow a biologically accurate curve: low on day 1, peak on day 2–3, tapering to end.
+- **Three intensity variants** driven by `AdvancedCycleProfile.flowIntensity`:
+  - `0` = Light — max fill ~45%
+  - `1` = Medium — max fill ~70%
+  - `2` = Heavy — max fill ~90%
+- Gradient goes from soft coral (`0xFFE57373`) at top to deep rose (`0xFFC1446F`) at base — matching the Liora pink palette. **Do not change these colour values.**
+- Background card uses `Color(0xFFFFE3EC)` (same warm blush as the next-period card) so it blends seamlessly.
+
+**Integration**:
+Call `_bloodFlowCard()` in `home_screen.dart` inside `_homeUI()`. It reads `CycleSession.algorithm.adjustedPeriodLength` and `profile.flowIntensity` — no extra state required.
+
+**Adding New Intensity Tiers**: Extend `_flowProfiles` map inside `BloodFlowWidget`.
+
+---
+
+**Last Updated**: April 4, 2026  
 **Status**: ACTIVE

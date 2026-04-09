@@ -134,12 +134,12 @@ class _OnboardingQuestionsScreenState
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _dateStep(),
-                    _numberSlider("Your Age?", age, 10, 50,
+                    _numberSlider("Your Age?", "Age helps us refine your hormonal cycle predictions as they change with life stages.", age, 10, 50,
                         (v) => age = v),
-                    _numberSlider("Cycle Length (days)?",
+                    _numberSlider("Cycle Length?", "Typically 21-40 days. This is the foundation of our tracking accuracy.",
                         cycleLength, 21, 40,
                         (v) => cycleLength = v),
-                    _numberSlider("Period Length (days)?",
+                    _numberSlider("Period Duration?", "Usually 3-10 days. We use this to identify potential hormone imbalances.",
                         periodLength, 3, 10,
                         (v) => periodLength = v),
                     _lifestyleStep(),
@@ -195,6 +195,7 @@ class _OnboardingQuestionsScreenState
 
   Widget _numberSlider(
     String title,
+    String reason,
     int value,
     int min,
     int max,
@@ -203,7 +204,17 @@ class _OnboardingQuestionsScreenState
     return _stepLayout(
       title,
       Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            reason,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 32),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 6,
@@ -225,11 +236,14 @@ class _OnboardingQuestionsScreenState
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            "$value",
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
+          Center(
+            child: Text(
+              "$value",
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE67598),
+              ),
             ),
           )
         ],
@@ -240,39 +254,48 @@ class _OnboardingQuestionsScreenState
   Widget _dateStep() {
     return _stepLayout(
       "When did your last period start?",
-      GestureDetector(
-        onTap: () async {
-          final picked = await showDatePicker(
-            context: context,
-            firstDate: DateTime(2000),
-            lastDate: DateTime.now(),
-            initialDate: DateTime.now(),
-          );
-          if (picked != null) {
-            setState(() => lastPeriodDate = picked);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(16),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "This date helps us calculate your current phase and predict when your next period will begin.",
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
-          child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                lastPeriodDate == null
-                    ? "Select Date"
-                    : "${lastPeriodDate!.day}/${lastPeriodDate!.month}/${lastPeriodDate!.year}",
-                style: const TextStyle(fontSize: 16),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now(),
+                initialDate: DateTime.now(),
+              );
+              if (picked != null) {
+                setState(() => lastPeriodDate = picked);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const Icon(Icons.calendar_today,
-                  color: Color(0xFFE67598)),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    lastPeriodDate == null
+                        ? "Select Date"
+                        : "${lastPeriodDate!.day}/${lastPeriodDate!.month}/${lastPeriodDate!.year}",
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const Icon(Icons.calendar_today,
+                      color: Color(0xFFE67598)),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

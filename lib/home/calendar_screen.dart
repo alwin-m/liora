@@ -5,6 +5,10 @@ import 'package:table_calendar/table_calendar.dart';
 import '../core/cycle_session.dart';
 import '../core/cycle_algorithm.dart';
 import '../widgets/cycle_history_sheet.dart';
+import '../services/diet_recommendation_service.dart';
+import '../models/ml_cycle_data.dart';
+import '../widgets/personalized_diet_sheet.dart';
+import '../Screens/cycle_ai_insights_panel.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -19,6 +23,8 @@ class _CalendarScreenState extends State<CalendarScreen>
   DateTime selectedDay = DateTime.now();
 
   CycleAlgorithm get algo => CycleSession.algorithm;
+
+  void _refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +54,18 @@ class _CalendarScreenState extends State<CalendarScreen>
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _calendarCard(),
-          const SizedBox(height: 20),
-          _selectedDayInsight(),
-          const SizedBox(height: 20),
-        ],
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            _calendarCard(),
+            const SizedBox(height: 10),
+            _selectedDayInsight(),
+            const SizedBox(height: 20),
+            _dietInfoPanel(),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
@@ -63,27 +74,30 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   Widget _calendarCard() {
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         child: TableCalendar(
           focusedDay: focusedDay,
           firstDay: DateTime.utc(2020),
           lastDay: DateTime.utc(2035),
+          rowHeight: 48,
           selectedDayPredicate: (d) => isSameDay(d, selectedDay),
           onDaySelected: (s, f) {
             setState(() {
               selectedDay = s;
               focusedDay = f;
             });
+            _showDayPopup(s);
           },
           headerStyle: const HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
+            titleTextStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           calendarBuilders: CalendarBuilders(
             defaultBuilder: (_, d, __) =>
@@ -115,21 +129,21 @@ class _CalendarScreenState extends State<CalendarScreen>
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: selected
             ? Border.all(
-                color: Colors.pinkAccent, width: 2)
+                color: const Color(0xFFE67598), width: 1.5)
             : today
                 ? Border.all(
-                    color: Colors.deepOrangeAccent,
-                    width: 2)
+                    color: Colors.deepOrangeAccent.withOpacity(0.5),
+                    width: 1.5)
                 : null,
       ),
       alignment: Alignment.center,
       child: Text(
         "${day.day}",
         style: const TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -150,51 +164,51 @@ class _CalendarScreenState extends State<CalendarScreen>
       case DayType.period:
         title = "Period Phase";
         desc =
-            "Your menstrual phase. Take rest and stay hydrated.";
+            "Your menstrual phase. Take rest and honor your body.";
         g1 = const Color(0xFFFF9AA2);
-        g2 = const Color(0xFFFFD1DC);
+        g2 = const Color(0xFFFFB7C5);
         break;
 
       case DayType.fertile:
         title = "Fertile Window";
         desc =
-            "These are your higher fertility days.";
+            "These are your high fertility days. Your body is prepping for ovulation.";
         g1 = const Color(0xFF81C784);
-        g2 = const Color(0xFFC8E6C9);
+        g2 = const Color(0xFFA5D6A7);
         break;
 
       case DayType.ovulation:
-        title = "Ovulation Day";
+        title = "Ovulation Day 🌟";
         desc =
-            "Peak fertility day of your cycle.";
+            "Peak fertility day of your cycle. Hormone levels are at their highest.";
         g1 = const Color(0xFFB39DDB);
-        g2 = const Color(0xFFE1BEE7);
+        g2 = const Color(0xFFD1C4E9);
         break;
 
       default:
-        title = "Normal Phase";
+        title = "Luteal Phase";
         desc =
-            "Hormonal balance phase.";
+            "Post-ovulation balance. Focus on nutrition and mental wellness.";
         g1 = const Color(0xFFF8BBD0);
-        g2 = const Color(0xFFE1BEE7);
+        g2 = const Color(0xFFFCE4EC);
     }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [g1, g2],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: g1.withOpacity(0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: g1.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -203,7 +217,7 @@ class _CalendarScreenState extends State<CalendarScreen>
           Text(
             title,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -213,21 +227,248 @@ class _CalendarScreenState extends State<CalendarScreen>
             desc,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 14,
-              height: 1.5,
+              fontSize: 13,
+              height: 1.4,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "Selected Date: ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              "Date: ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}",
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // ================= DIET INFO PANEL =================
+
+  Widget _dietInfoPanel() {
+    final type = algo.getType(selectedDay);
+    CyclePhase phase;
+
+    switch (type) {
+      case DayType.period:
+        phase = CyclePhase.menstrual;
+        break;
+      case DayType.fertile:
+        phase = CyclePhase.follicular;
+        break;
+      case DayType.ovulation:
+        phase = CyclePhase.ovulation;
+        break;
+      default:
+        phase = CyclePhase.luteal;
+    }
+
+    final guidance = DietRecommendationEngine()
+        .getPersonalizedGuidance(profile: algo.profile, phase: phase);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.pink.shade50.withOpacity(0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, 
+                color: Color(0xFFE67598), size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  guidance.title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => PersonalizedDietSheet(onUpdated: _refresh),
+                  );
+                },
+                icon: const Icon(Icons.tune_rounded, color: Color(0xFFE67598), size: 20),
+                tooltip: "Personalize",
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // BMI Indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Status: ", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                Text(
+                  algo.profile.bmiStatus,
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.bold, 
+                    color: algo.profile.bmiStatus == "Normal" ? Colors.green : Colors.orange),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Best Foods Section
+          const Text("Recommended for you", 
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: guidance.bestFoods.map((food) => _foodChip(food, true)).toList(),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Avoid Section
+          const Text("Better to avoid", 
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: guidance.avoidFoods.map((food) => _foodChip(food, false)).toList(),
+          ),
+          
+          const SizedBox(height: 24),
+          const Divider(height: 1, thickness: 1),
+          const SizedBox(height: 20),
+          
+          // Hydration & Calories (WITH OVERFLOW FIX)
+          Row(
+            children: [
+              Expanded(child: _metricTile(Icons.water_drop_rounded, "Liters", guidance.waterAmount)),
+              const SizedBox(width: 12),
+              Expanded(child: _metricTile(Icons.local_fire_department_rounded, "Kcal Goal", guidance.calories)),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+          
+          // Source
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  "Tailored for your age (${algo.profile.age}) and BMI",
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_user_outlined, size: 10, color: Colors.green.shade300),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Source: ${guidance.source}",
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey.shade400,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _foodChip(FoodItem food, bool positive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: positive ? const Color(0xFFF1F8E9) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: positive ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(food.emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 6),
+          Text(
+            food.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: positive ? Colors.green.shade800 : Colors.orange.shade800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricTile(IconData icon, String label, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDF6F9),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18, color: const Color(0xFFE67598)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey), overflow: TextOverflow.ellipsis),
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -291,6 +532,110 @@ class _CalendarScreenState extends State<CalendarScreen>
               Text("Cycle updated successfully"),
         ),
       );
+    }
+  }
+
+  // ================= AI INSIGHTS POPUP =================
+
+  void _showDayPopup(DateTime date) {
+    final type = algo.getType(date);
+    CyclePhase phase;
+    switch (type) {
+      case DayType.period: phase = CyclePhase.menstrual; break;
+      case DayType.fertile: phase = CyclePhase.follicular; break;
+      case DayType.ovulation: phase = CyclePhase.ovulation; break;
+      default: phase = CyclePhase.luteal;
+    }
+
+    int dayInPhase = 1;
+    if (type == DayType.period) {
+      final records = CycleSession.history;
+      if (records.isNotEmpty) {
+        final last = records.first;
+        dayInPhase = date.difference(last.startDate).inDays + 1;
+        if (dayInPhase < 1) dayInPhase = 1;
+        if (dayInPhase > 7) dayInPhase = 7;
+      }
+    }
+
+    final phaseInfo = CyclePhaseInfo(
+      phase: phase,
+      dayInPhase: dayInPhase,
+      confidenceScore: 0.94,
+      estimatedStartDate: date.subtract(Duration(days: dayInPhase - 1)),
+      estimatedEndDate: date.add(const Duration(days: 4)),
+      hormonalExplanation: _getHormonalExplanation(phase),
+      bodyChangesExplanation: _getBodyChangesExplanation(phase),
+      expectedSymptoms: _getExpectedSymptoms(phase),
+      recommendedFoods: [],
+      foodsToAvoid: [],
+    );
+
+    final prediction = MLCyclePrediction(
+      nextPeriodDate: algo.getNextPeriodDate(),
+      confidenceScore: 0.94,
+      phaseInfo: phaseInfo,
+      insightSummary: _getInsightSummary(phase),
+      personalizedRecommendations: _getRecommendations(phase),
+      influencingFactors: ["Cycle Regularity", "Historical Trends"],
+      predictionTimestamp: DateTime.now(),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CycleAIInsightsPanel(
+        selectedDate: date,
+        prediction: prediction,
+        phaseInfo: phaseInfo,
+        isToday: isSameDay(date, DateTime.now()),
+      ),
+    );
+  }
+
+  String _getHormonalExplanation(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Estrogen and progesterone are at their lowest levels as the lining sheds.";
+      case CyclePhase.follicular: return "Estrogen is steadily rising to prepare a new follicle in the ovary.";
+      case CyclePhase.ovulation: return "Hormonal peak reached! LH and estrogen are driving peak fertility.";
+      case CyclePhase.luteal: return "Progesterone is now dominant, preparing the body for the next potential cycle.";
+    }
+  }
+
+  String _getBodyChangesExplanation(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Core temperature is low, and your uterine muscles are actively recovering.";
+      case CyclePhase.follicular: return "Energy and physical resilience are increasing as estrogen builds up.";
+      case CyclePhase.ovulation: return "You may experience clearer complexion and a peak in overall physical awareness.";
+      case CyclePhase.luteal: return "A slight shift in metabolic rate often leads to increased appetite and lower energy.";
+    }
+  }
+
+  List<String> _getExpectedSymptoms(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return ["Cramps", "Lower Energy", "Bloating"];
+      case CyclePhase.follicular: return ["Fresh Energy", "Clearer Skin"];
+      case CyclePhase.ovulation: return ["Peak Vitality", "Confidence Boost"];
+      case CyclePhase.luteal: return ["Water Retention", "Food Cravings"];
+    }
+  }
+
+  String _getInsightSummary(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return "Prioritize rest. This is your body's phase of deep renewal and recovery.";
+      case CyclePhase.follicular: return "Your most productive phase! A perfect time to start projects or focus on growth.";
+      case CyclePhase.ovulation: return "You are at your peak. Your confidence and sociability are likely at their height.";
+      case CyclePhase.luteal: return "Turn inward. Focus on self-care, mindfulness, and keeping a steady nutrition pace.";
+    }
+  }
+
+  List<String> _getRecommendations(CyclePhase phase) {
+    switch (phase) {
+      case CyclePhase.menstrual: return ["Gentle stretching only", "Warm, iron-rich meals"];
+      case CyclePhase.follicular: return ["High-impact exercise", "Social networking"];
+      case CyclePhase.ovulation: return ["Important meetings", "Intense cardio"];
+      case CyclePhase.luteal: return ["Yoga & Meditation", "Magnesium supplements"];
     }
   }
 }

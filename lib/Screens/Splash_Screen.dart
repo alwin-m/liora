@@ -6,6 +6,8 @@ import '../home/home_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../core/local_storage.dart';
 import '../core/cycle_session.dart';
+import '../core/security_service.dart';
+import '../widgets/app_lock_sheet.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -59,29 +61,48 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       // 🔥 LOAD PROFILE INTO CYCLE ENGINE
-await CycleSession.loadFromLocalStorage();
-
-if (!mounted) return;
-
-// ✅ Admin goes to Admin Dashboard, user goes to Home
-if (role == 'admin') {
-  Navigator.pushReplacementNamed(context, '/admin');
-} else {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const HomeScreen(),
-    ),
-  );
-}
-
-    } catch (e) {
-      debugPrint("Splash Error: $e");
+      await CycleSession.loadFromLocalStorage();
 
       if (!mounted) return;
 
-      // Fallback → restart flow safely
+      // 🔐 APP LOCK SECURITY
+      final isLockNeeded = await SecurityService.isLockEnabled();
+      if (!isLockNeeded) {
+        _continueToApp(role);
+        return;
+      }
+
+      // SHOW BOTTOM SHEET FOR LOCK
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (context) => AppLockSheet(
+          onAuthenticated: () {
+            Navigator.pop(context); // Close sheet
+            _continueToApp(role);
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint("Splash Error: $e");
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/signup');
+    }
+  }
+
+  void _continueToApp(String role) {
+    if (!mounted) return;
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 

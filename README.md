@@ -79,7 +79,7 @@ Located in `skills/liora/`:
 
 Created and maintained by **Alwin Madhu**—a vision for empowering women's health through technology.
 
-- **GitHub**: [@alwin-m](https://github.com/alwin-m)
+- **GitHub**: [abhishek-2006-7](https://github.com/abhishek-2006-7)
 - **Contact**: [`alwinmadhu7@gmail.com`](mailto:alwinmadhu7@gmail.com)
 
 ---

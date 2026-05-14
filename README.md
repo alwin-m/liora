@@ -80,7 +80,7 @@ Located in `skills/liora/`:
 Created and maintained by **Alwin Madhu**—a vision for empowering women's health through technology.
 
 - **GitHub**: [abhishek-2006-7](https://github.com/abhishek-2006-7)
-- **Contact**: [`alwinmadhu7@gmail.com`](mailto:alwinmadhu7@gmail.com)
+- **Contact**: [`liorasanma@gmail.com`](mailto:liorasanma@gmail.com)
 
 ---
 *Liora: Intelligence for Personal Wellness.* 💖

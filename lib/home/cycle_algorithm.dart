@@ -1,19 +1,16 @@
 ﻿enum DayType { period, fertile, ovulation, normal }
 
-
 class CycleAlgorithm {
   final DateTime lastPeriod;
   final int cycleLength;
   final int periodLength;
 
-  
   CycleAlgorithm({
     required this.lastPeriod,
     required this.cycleLength,
     required this.periodLength,
   });
 
-  
   int getCycleDay(DateTime date) {
     final normalizedLast = DateTime(
       lastPeriod.year,

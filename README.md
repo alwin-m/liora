@@ -4,6 +4,7 @@
 
 **Liora** is a premium, high-performance women's wellness ecosystem built with **Flutter**. It empowers users through algorithmic period predictions, integrated e-commerce capabilities, and empathetic AI interaction—all packaged in a modern, Material 3 aesthetic.
 
+
 ---
 
 ## 🌟 Key Features

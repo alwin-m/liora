@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Screens/ml_prediction_tester_screen.dart';
 import 'models/ml_cycle_data.dart';
-import 'services/ml_inference_service.dart';
 import 'services/diet_recommendation_service.dart';
 
 /// ML SYSTEM DEMO & TESTING APP
@@ -147,7 +146,7 @@ class _OverviewPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildFeatureItem(
-            icon: Icons.lightning_bolt,
+            icon: Icons.bolt_rounded,
             title: 'Smart Predictions',
             description: 'Uses 10 health parameters for accurate cycle forecasts',
           ),

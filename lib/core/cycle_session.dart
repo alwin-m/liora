@@ -52,26 +52,23 @@ class CycleSession {
 
   // ================= SAVE PROFILE =================
 
-  static Future<void> saveToLocalStorage(
-      AdvancedCycleProfile profile) async {
+  static Future<void> saveToLocalStorage(AdvancedCycleProfile profile) async {
     _profile = profile;
     _algorithm = CycleAlgorithm(profile: profile);
     await LocalStorage.saveProfile(profile);
   }
+
+  static Future<void> updateProfile(AdvancedCycleProfile p) => saveToLocalStorage(p);
 
   // ================= ADD NEW CYCLE RECORD =================
 
   static Future<void> addCycleRecord(DateTime newStartDate) async {
     if (_profile == null || _algorithm == null) return;
 
-    final previousStart = _profile!.lastPeriodDate;
+    final history = _history;
     final predicted = _algorithm!.getNextPeriodDate();
-
-    final cycleLength =
-        newStartDate.difference(previousStart).inDays;
-
-    final deviation =
-        newStartDate.difference(predicted).inDays;
+    final cycleLength = newStartDate.difference(_profile!.lastPeriodDate).inDays;
+    final deviation = newStartDate.difference(predicted).inDays;
 
     final record = CycleRecord(
       startDate: newStartDate,
@@ -82,28 +79,8 @@ class CycleSession {
 
     _history.insert(0, record);
 
-    // Update profile last period
-    _profile = AdvancedCycleProfile(
-      lastPeriodDate: newStartDate,
-      averageCycleLength: _profile!.averageCycleLength,
-      averagePeriodLength: _profile!.averagePeriodLength,
-      age: _profile!.age,
-      isRegularCycle: _profile!.isRegularCycle,
-      stressLevel: _profile!.stressLevel,
-      painLevel: _profile!.painLevel,
-      pmsSeverity: _profile!.pmsSeverity,
-      flowIntensity: _profile!.flowIntensity,
-      ovulationSymptoms: _profile!.ovulationSymptoms,
-      sleepQuality: _profile!.sleepQuality,
-      exerciseLevel: _profile!.exerciseLevel,
-      bmiCategory: _profile!.bmiCategory,
-      hasPCOS: _profile!.hasPCOS,
-      hasThyroid: _profile!.hasThyroid,
-      onHormonalMedication: _profile!.onHormonalMedication,
-      recentlyPregnant: _profile!.recentlyPregnant,
-      breastfeeding: _profile!.breastfeeding,
-    );
-
+    // Update profile last period while preserving other fields (like profileImage)
+    _profile = _profile!.copyWith(lastPeriodDate: newStartDate);
     _algorithm = CycleAlgorithm(profile: _profile!);
 
     await LocalStorage.saveProfile(_profile!);

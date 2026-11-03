@@ -1,24 +1,21 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'package:image_picker/image_picker.dart';
-import 'package:lioraa/Screens/your_details_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/cycle_session.dart';
 import '../core/cycle_algorithm.dart';
 import '../core/notification_service.dart';
-
-import '../Screens/change_password_screen.dart';
-import '../Screens/my_orders_screen.dart';
-import '../Screens/about_screen.dart';
+import '../core/app_settings.dart';
+import '../services/connectivity_service.dart';
+import '../widgets/status_bottom_sheet.dart';
 import '../Screens/Login_Screen.dart';
+import '../Screens/your_details_screen.dart';
+import '../Screens/change_password_screen.dart';
+import '../Screens/security_privacy_screen.dart';
+import '../Screens/about_screen.dart';
+import '../Screens/my_orders_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,15 +24,13 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
-
+class _ProfileScreenState extends State<ProfileScreen> {
   late CycleAlgorithm algo;
-
-  String userName = "User";
-  bool periodReminder = true;
-
-  String? avatarBase64;
+  String userName = "Liora User";
+  bool _isLoading = true;
+  bool _periodReminder = true;
+  bool _dailyAlert = true;
+  String _systemStatus = "Optimized";
 
   final ImagePicker _picker = ImagePicker();
 
@@ -49,273 +44,111 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-
     algo = CycleSession.algorithm;
-
-    _loadUser();
-    _loadSettings();
-    _loadAvatar();
+    _initializeProfile();
   }
 
-  // ================= LOAD USER =================
-
-  Future<void> _loadUser() async {
+  Future<void> _initializeProfile() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists) {
+          setState(() {
+            userName = doc['name'] ?? "Liora User";
+          });
+        }
+      } catch (e) {
+        debugPrint("User data load error: $e");
+      }
+    }
+    
+    final isOnline = await ConnectivityService().isConnected();
+    final dailyAlert = await AppSettings.getDailyCycleAlert();
 
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    setState(() {
+      _systemStatus = isOnline ? "Online" : "Cached";
+      _dailyAlert = dailyAlert;
+      _isLoading = false;
+    });
+  }
 
-    if (doc.exists && doc.data()!.containsKey('name')) {
-      setState(() {
-        userName = doc['name'];
-      });
+  Future<void> _pickImage() async {
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 60);
+      if (picked == null) return;
+      
+      final bytes = await picked.readAsBytes();
+      final base64 = base64Encode(bytes);
+      
+      await CycleSession.updateProfile(CycleSession.profile.copyWith(profileImage: base64));
+      setState(() {});
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated ✓")));
+    } catch (e) {
+      debugPrint("Gallery upload error: $e");
     }
   }
 
-  // ================= EDIT NAME =================
+  Future<void> _selectAvatar(String asset) async {
+    await CycleSession.updateProfile(CycleSession.profile.copyWith(profileImage: asset));
+    setState(() {});
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Character Selected ✓")));
+  }
 
-  Future<void> _editNameDialog() async {
-
-    final controller = TextEditingController(text: userName);
-
+  void _showAvatarPicker() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(25),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFDF6F9),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(30),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Personalize Your Character", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 90,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: defaultAvatars.length,
+                itemBuilder: (context, index) => GestureDetector(
+                  onTap: () {
+                    _selectAvatar(defaultAvatars[index]);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 15),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE67598).withOpacity(0.2), width: 2),
+                    ),
+                    child: CircleAvatar(radius: 40, backgroundImage: AssetImage(defaultAvatars[index])),
+                  ),
+                ),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-
-                Container(
-                  width: 50,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  "Edit Your Name",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    hintText: "Enter your name",
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 15),
-                    border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFFE67598),
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(15),
-                      ),
-                    ),
-                    onPressed: () async {
-
-                      final newName =
-                          controller.text.trim();
-
-                      if (newName.isEmpty) return;
-
-                      final user =
-                          FirebaseAuth.instance
-                              .currentUser;
-
-                      if (user == null) return;
-
-                      await FirebaseFirestore
-                          .instance
-                          .collection('users')
-                          .doc(user.uid)
-                          .update({'name': newName});
-
-                      setState(() {
-                        userName = newName;
-                      });
-
-                      Navigator.pop(context);
-
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              "Name Updated Successfully 💖"),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "Save Changes",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight:
-                              FontWeight.bold),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ================= AVATAR STORAGE =================
-
-  Future<void> _loadAvatar() async {
-
-    final prefs = await SharedPreferences.getInstance();
-
-    setState(() {
-      avatarBase64 = prefs.getString('profile_avatar');
-    });
-  }
-
-  Future<void> _saveAvatar(String base64) async {
-
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString('profile_avatar', base64);
-  }
-
-  Future<void> _removeAvatar() async {
-
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.remove('profile_avatar');
-
-    setState(() {
-      avatarBase64 = null;
-    });
-  }
-
-  // ================= PICK IMAGE =================
-
-  Future<void> _pickImage() async {
-
-    if (kIsWeb) return;
-
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-
-    if (picked == null) return;
-
-    final bytes = await File(picked.path).readAsBytes();
-
-    final base64 = base64Encode(bytes);
-
-    await _saveAvatar(base64);
-
-    setState(() {
-      avatarBase64 = base64;
-    });
-  }
-
-  // ================= DEFAULT AVATAR =================
-
-  Future<void> _selectDefaultAvatar(String asset) async {
-
-    final bytes = await rootBundle.load(asset);
-
-    final base64 =
-        base64Encode(bytes.buffer.asUint8List());
-
-    await _saveAvatar(base64);
-
-    setState(() {
-      avatarBase64 = base64;
-    });
-  }
-
-  // ================= AVATAR OPTIONS =================
-
-  void _showAvatarOptions() {
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Profile Photo"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-
+            const SizedBox(height: 24),
             ListTile(
-              leading: const Icon(Icons.photo),
-              title: const Text("Choose from Gallery"),
+              leading: const Icon(Icons.add_photo_alternate_rounded, color: Color(0xFFE67598)),
+              title: const Text("Upload from Gallery"),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage();
               },
             ),
-
-            ListTile(
-              leading: const Icon(Icons.face),
-              title: const Text("Select Default Avatar"),
-              onTap: () {
-                Navigator.pop(context);
-                _showDefaultAvatars();
-              },
-            ),
-
-            if (avatarBase64 != null)
+            if (CycleSession.profile.profileImage != null)
               ListTile(
-                leading: const Icon(Icons.delete,
-                    color: Colors.red),
-                title: const Text("Remove Photo"),
-                onTap: () {
+                leading: const Icon(Icons.no_accounts_rounded, color: Colors.grey),
+                title: const Text("Reset to Default"),
+                onTap: () async {
+                  await CycleSession.updateProfile(CycleSession.profile.copyWith(profileImage: null));
+                  setState(() {});
                   Navigator.pop(context);
-                  _removeAvatar();
                 },
               ),
           ],
@@ -324,365 +157,272 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  void _showDefaultAvatars() {
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+    }
+  }
 
-    showDialog(
+  void _showPhilosophy() {
+    showModalBottomSheet(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Choose Avatar"),
-        content: GridView.builder(
-          shrinkWrap: true,
-          itemCount: defaultAvatars.length,
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-          ),
-          itemBuilder: (_, index) {
-
-            return GestureDetector(
-              onTap: () {
-                _selectDefaultAvatar(
-                    defaultAvatars[index]);
-                Navigator.pop(context);
-              },
-              child: CircleAvatar(
-                backgroundImage:
-                    AssetImage(defaultAvatars[index]),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Our Philosophy", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            const Text(
+              "Liora is built on the Japanese concept of Ikigai — finding purpose and harmony in every action.",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFE67598)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Design with Reason: Every feature in Liora exists for a reason. We don't just track data; we transform it into meaningful insights that make your life smoother, faster, and more stable.",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Intuitive for All: Whether you are a beginner or an expert, Liora is designed to be understood instantly. We believe clarity is the highest form of technology.",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.6),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE67598),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("UNDERSTOOD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ================= REMINDER =================
-
-  Future<void> _loadSettings() async {
-    setState(() {
-      periodReminder = true;
-    });
-  }
-
-  Future<void> _toggleReminder(bool value) async {
-
-    setState(() {
-      periodReminder = value;
-    });
-
-    if (value) {
-
-      final nextPeriod =
-          CycleSession.algorithm.getNextPeriodDate();
-
-      await NotificationService
-          .reschedulePeriodReminder(nextPeriod);
-
-    } else {
-
-      await NotificationService.cancelPeriodReminder();
-    }
-  }
-
-  // ================= AUTH =================
-
-  Future<void> _logout() async {
-
-    await FirebaseAuth.instance.signOut();
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-          builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
-  // ✅ FIXED: Added confirmation dialog + error handling
-  Future<void> _deleteAccount() async {
-
-    // Step 1 — Confirm before doing anything
-    final confirm = await showDialog<bool>(
+  void _showPrivacy() {
+    showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Account'),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        title: const Text("Privacy Protocol"),
         content: const Text(
-          'This will permanently delete your account and all your data. This cannot be undone.',
+          "Your health data is encrypted and stored securely. We use it exclusively to personalize your cycle predictions and nutritional guidance. We never sell your data.",
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("SECURE", style: TextStyle(color: Color(0xFFE67598))))
         ],
       ),
     );
-
-    if (confirm != true) return;
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      // Step 2 — Delete Firestore doc
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .delete();
-
-      // Step 3 — Delete Auth account
-      await user.delete();
-
-      // Step 4 — Navigate to login
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      // Handles case where user logged in too long ago
-      if (e.code == 'requires-recent-login' && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please log out and log back in, then try deleting again.',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
   }
-
-  // ================= BUILD =================
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFE67598))));
 
-    final nextPeriod = algo.getNextPeriodDate();
-    final confidence =
-        (algo.confidenceScore * 100).toInt();
+    final profile = CycleSession.profile;
+    final healthScore = algo.calculateHealthScore(CycleSession.history).toInt();
+    final streak = algo.getTrackingStreak(CycleSession.history);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F9),
-
       body: SafeArea(
         child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.fromLTRB(20,20,20,40),
-
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              _buildCenteredHeader(profile),
+              const SizedBox(height: 32),
+              _buildMetricGrid(healthScore, streak),
+              const SizedBox(height: 32),
+              _buildSectionTitle("JOURNEY PREFERENCES"),
+              _buildActionCard(Icons.auto_awesome_outlined, "Liora Philosophy", onTap: _showPhilosophy),
+              _buildActionCard(Icons.person_outline_rounded, "Your Details", onTap: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => const YourDetailsScreen()));
+              }),
+              _buildActionCard(Icons.shopping_bag_outlined, "My Orders", onTap: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+              }),
+              _buildActionCard(Icons.notifications_active_rounded, "Cycle Reminders", trailing: Switch.adaptive(
+                value: _periodReminder, 
+                activeColor: const Color(0xFFE67598),
+                onChanged: (v) {
+                  setState(() => _periodReminder = v);
+                  if (v) NotificationService.reschedulePeriodReminder(algo.getNextPeriodDate());
+                  else NotificationService.cancelPeriodReminder();
+                }
+              )),
+              
+              _buildActionCard(Icons.calendar_today_rounded, "Daily Cycle Updates", trailing: Switch.adaptive(
+                value: _dailyAlert, 
+                activeColor: const Color(0xFFE67598),
+                onChanged: (v) async {
+                  setState(() => _dailyAlert = v);
+                  await AppSettings.saveDailyCycleAlert(v);
+                  if (v) await NotificationService.scheduleDailyCycleAlerts();
+                  else await NotificationService.cancelDailyAlerts();
+                }
+              )),
 
-              _profileHeader(nextPeriod, confidence),
-
-              const SizedBox(height:25),
-
-              _notificationCard(),
-
-              const SizedBox(height:25),
-
-              _settingsSection(),
-
-              const SizedBox(height:30),
-
-              const Text(
-                "Liora v1.0.0",
-                style: TextStyle(color: Colors.grey),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================= HEADER =================
-
-  Widget _profileHeader(
-      DateTime nextPeriod,
-      int confidence) {
-
-    return Container(
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFADADD),
-            Color(0xFFE6E6FA),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(25),
-      ),
-
-      child: Column(
-        children: [
-
-          Stack(
-            children: [
-
-              CircleAvatar(
-                radius:45,
-                backgroundColor:
-                    const Color(0xFFE67598),
-
-                backgroundImage: avatarBase64!=null
-                    ? MemoryImage(
-                        base64Decode(
-                            avatarBase64!))
-                    : null,
-
-                child: avatarBase64==null
-                    ? const Icon(Icons.person,
-                        size:45,color:Colors.white)
-                    : null,
-              ),
-
-              Positioned(
-                bottom:0,
-                right:0,
-                child: GestureDetector(
-                  onTap:_showAvatarOptions,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.all(6),
-                    decoration:
-                        const BoxDecoration(
-                      color:Colors.white,
-                      shape:BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size:18,
-                      color:Color(0xFFE67598),
-                    ),
-                  ),
-                ),
-              )
-            ],
-          ),
-
-          const SizedBox(height:15),
-
-          Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-            children: [
-
-              Text(
-                "Welcome, $userName",
-                style: const TextStyle(
-                    fontSize:20,
-                    fontWeight:FontWeight.bold),
-              ),
-
-              const SizedBox(width:6),
-
+              const SizedBox(height: 32),
+              _buildSectionTitle("SECURITY & PROTECTION"),
+              _buildActionCard(Icons.security_rounded, "App Lock & Privacy", onTap: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityPrivacyScreen()));
+              }),
+              _buildActionCard(Icons.key_rounded, "Change Password", onTap: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+              }),
+              
+              const SizedBox(height: 32),
+              _buildSectionTitle("ACCOUNT & TRUST"),
+              _buildActionCard(Icons.info_outline_rounded, "About Liora", onTap: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+              }),
+              _buildActionCard(Icons.support_agent_rounded, "Liora Support", onTap: () {}),
+              _buildActionCard(Icons.verified_user_rounded, "Privacy Protocol", onTap: _showPrivacy),
+              _buildActionCard(Icons.logout_rounded, "Secure Sign Out", isDestructive: true, onTap: _logout),
+              
+              const SizedBox(height: 60),
               GestureDetector(
-                onTap:_editNameDialog,
-                child: const Icon(Icons.edit,
-                    size:18,
-                    color:Color(0xFFE67598)),
-              )
+                onTap: () async {
+                  final isOnline = await ConnectivityService().isConnected();
+                  StatusBottomSheet.showVersionStatus(context, isOnline, "v1.2.0-luxe");
+                },
+                child: Column(
+                  children: [
+                    Text("Liora v1.2.0 • System: $_systemStatus", style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    const SizedBox(height: 6),
+                    Text("Made with clinical care for your wellness", style: TextStyle(color: Colors.grey.shade300, fontSize: 10)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
-
-          const SizedBox(height:10),
-
-          Text("Cycle Health Score: $confidence%"),
-          Text("Next Period: ${nextPeriod.day}/${nextPeriod.month}/${nextPeriod.year}"),
-        ],
+        ),
       ),
     );
   }
 
-  // ================= NOTIFICATION =================
-
-  Widget _notificationCard() {
-
-    return SwitchListTile(
-      value: periodReminder,
-      activeThumbColor: const Color(0xFFE67598),
-      title: const Text("Period Reminder"),
-      onChanged: _toggleReminder,
-    );
-  }
-
-  // ================= SETTINGS =================
-
-  Widget _settingsSection() {
+  Widget _buildCenteredHeader(profile) {
+    ImageProvider? img;
+    final pImg = profile.profileImage;
+    if (pImg != null) {
+      if (pImg.startsWith("assets/")) img = AssetImage(pImg);
+      else img = MemoryImage(base64Decode(pImg));
+    }
 
     return Column(
       children: [
-
-        ListTile(
-          leading: const Icon(Icons.lock_outline),
-          title: const Text("Change Password"),
-          onTap: (){
-            Navigator.push(context,
-                MaterialPageRoute(builder:(_)=>const ChangePasswordScreen()));
-          },
-        ),
-
-        ListTile(
-          leading: const Icon(Icons.shopping_bag_outlined),
-          title: const Text("My Orders"),
-          onTap: (){
-            Navigator.push(context,
-                MaterialPageRoute(builder:(_)=>const MyOrdersScreen()));
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.person_outline),
-          title: const Text("Your Details"),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const YourDetailsScreen(),
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE67598).withOpacity(0.3), width: 3),
               ),
-            );
-          },
+              child: CircleAvatar(
+                radius: 65,
+                backgroundColor: Colors.white,
+                backgroundImage: img,
+                child: img == null ? const Icon(Icons.face_retouching_natural_rounded, size: 60, color: Color(0xFFE67598)) : null,
+              ),
+            ),
+            GestureDetector(
+              onTap: _showAvatarPicker,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(color: Color(0xFFE67598), shape: BoxShape.circle),
+                child: const Icon(Icons.auto_fix_high_rounded, size: 18, color: Colors.white),
+              ),
+            ),
+          ],
         ),
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: const Text("About"),
-          onTap: (){
-            Navigator.push(context,
-                MaterialPageRoute(builder:(_)=>const AboutScreen()));
-          },
-        ),
-
-        const Divider(),
-
-        ListTile(
-          leading: const Icon(Icons.logout,color:Colors.red),
-          title: const Text("Logout",
-              style:TextStyle(color:Colors.red)),
-          onTap:_logout,
-        ),
-
-        ListTile(
-          leading: const Icon(Icons.delete_outline,color:Colors.red),
-          title: const Text("Delete Account",
-              style:TextStyle(color:Colors.red)),
-          onTap:_deleteAccount,
+        const SizedBox(height: 24),
+        Text(userName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A), letterSpacing: -0.5)),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(color: const Color(0xFFFDEEF2), borderRadius: BorderRadius.circular(20)),
+          child: const Text("PRO PREDICTOR MODEL", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFE67598), letterSpacing: 1)),
         ),
       ],
+    );
+  }
+
+  Widget _buildMetricGrid(int score, int streak) {
+    return Row(
+      children: [
+        _metricTile("HEALTH", "$score%", Colors.green.shade400),
+        const SizedBox(width: 16),
+        _metricTile("STREAK", "$streak Days", Colors.orange.shade400),
+      ],
+    );
+  }
+
+  Widget _metricTile(String label, String val, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        ),
+        child: Column(
+          children: [
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
+            const SizedBox(height: 8),
+            Text(val, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 16),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 2)),
+      ),
+    );
+  }
+
+  Widget _buildActionCard(IconData icon, String title, {Widget? trailing, VoidCallback? onTap, bool isDestructive = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        leading: Icon(icon, color: isDestructive ? Colors.redAccent : const Color(0xFFE67598), size: 22),
+        title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDestructive ? Colors.redAccent : Colors.black87)),
+        trailing: trailing ?? Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:lioraa/models/cycle_record.dart';
 import 'advanced_cycle_profile.dart';
 
 enum DayType { period, fertile, ovulation, normal }
@@ -128,7 +129,72 @@ class CycleAlgorithm {
   }
 
   // ==============================
-  // CONFIDENCE SCORE (90% CAP)
+  // HEALTH SCORE CALCULATION
+  // ==============================
+
+  /// Calculates a gamified health score (0-100) based on:
+  /// 1. Profile factors (Regularity, PCOS, Stress, Sleep)
+  /// 2. Tracking consistency (Streak)
+  /// 3. Deviation history (How close actual periods were to predicted ones)
+  double calculateHealthScore(List<CycleRecord> history) {
+    double baseScore = 75.0; // Base starting point
+
+    // factor 1: Profile Factors (Max +15)
+    if (profile.isRegularCycle) baseScore += 5;
+    if (!profile.hasPCOS) baseScore += 5;
+    if (profile.stressLevel == 0) baseScore += 3;
+    if (profile.sleepQuality >= 1) baseScore += 2;
+
+    // factor 2: Tracking Streak (Max +10)
+    // Each month of consistent tracking gives a 2% boost
+    int streak = getTrackingStreak(history);
+    baseScore += (streak * 2.0).clamp(0.0, 10.0);
+
+    // factor 3: Deviation Penalty (Max -30)
+    // We look at the last 3 records to see if there's a pattern of irregularity
+    if (history.isNotEmpty) {
+      double deviationPenalty = 0;
+      int recordsToView = history.length > 3 ? 3 : history.length;
+      
+      for (int i = 0; i < recordsToView; i++) {
+        int absDev = history[i].deviation.abs();
+        if (absDev > 10) {
+          deviationPenalty += 10;
+        } else if (absDev > 5) {
+          deviationPenalty += 5;
+        } else if (absDev > 2) {
+          deviationPenalty += 2;
+        }
+      }
+      baseScore -= deviationPenalty;
+    }
+
+    return baseScore.clamp(1.0, 100.0);
+  }
+
+  /// Calculates the tracking streak in months.
+  /// A streak is maintained if there is a record for consecutive months.
+  int getTrackingStreak(List<CycleRecord> history) {
+    if (history.isEmpty) return 0;
+    
+    int streak = 1;
+    for (int i = 0; i < history.length - 1; i++) {
+      final current = history[i].startDate;
+      final previous = history[i + 1].startDate;
+      
+      // If the difference is roughly one cycle length (20-40 days), the streak continues
+      int diffDays = current.difference(previous).inDays;
+      if (diffDays >= 20 && diffDays <= 45) {
+        streak++;
+      } else {
+        break; // Streak broken
+      }
+    }
+    return streak;
+  }
+
+  // ==============================
+  // CONFIDENCE SCORE (OLD METHOD - DEPRECATED BUT KEPT FOR COMPATIBILITY)
   // ==============================
 
   double get confidenceScore {
